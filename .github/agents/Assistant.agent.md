@@ -19,7 +19,6 @@ For task 1 and task 2 in the {DATA_ENGINEERING_TASKS}, perform the following:
     - Execution Plan:
         - Create the plans/ and the $short-task-name/ directory if it does not exist.
         - Create $short-task-name_execplan.md using the ExecPlan skeleton described in PLANS.md. Scope it to the task. The plan should cover the following outcomes for this task:
-            - STRICTLY follow the execution plans in plans/q0_*/q0_*_execplan.md to build your plan.
             - you MUST include all the sections described in the Task.
             - DO NOT skip any section described in the Task.
             - Task dependencies.

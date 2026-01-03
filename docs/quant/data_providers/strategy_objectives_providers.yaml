@@ -1,0 +1,29 @@
+{
+  "schema_id": "quant-spec.q0_5.strategy_objectives.data_providers",
+  "schema_version": "1.0.0",
+  "effective_date": "2026-01-03",
+  "task_id": "Q0.5",
+  "task_name": "Strategy Objective Document",
+  "source": {
+    "document": "quant_tasks.md",
+    "section": "Task Q0.5 — Define Strategy Objective Document / Data Providers"
+  },
+  "data_types_required": [
+    "long_term_volatility",
+    "macro_risk_context"
+  ],
+  "approved_providers": [
+    {
+      "name": "FRED",
+      "why_quant_qualified": "Macro volatility & stress context"
+    },
+    {
+      "name": "ECB SDW",
+      "why_quant_qualified": "Euro-area risk conditions"
+    },
+    {
+      "name": "OECD",
+      "why_quant_qualified": "Structural regime benchmarks"
+    }
+  ]
+}

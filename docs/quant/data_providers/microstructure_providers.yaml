@@ -1,0 +1,29 @@
+{
+  "schema_id": "quant-spec.q0_8.microstructure.data_providers",
+  "schema_version": "1.0.0",
+  "effective_date": "2026-01-03",
+  "task_id": "Q0.8",
+  "task_name": "Microstructure Target Definitions",
+  "source": {
+    "document": "quant_tasks.md",
+    "section": "Task Q0.8 — Microstructure Target Definitions / Data Providers"
+  },
+  "data_types_required": [
+    "tick_data",
+    "order_flow_proxies"
+  ],
+  "approved_providers": [
+    {
+      "name": "Dukascopy",
+      "why_quant_qualified": "Free FX tick data"
+    },
+    {
+      "name": "TrueFX",
+      "why_quant_qualified": "Institutional tick feed"
+    },
+    {
+      "name": "LOBSTER (academic)",
+      "why_quant_qualified": "Limit order book realism"
+    }
+  ]
+}

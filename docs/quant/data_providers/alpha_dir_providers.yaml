@@ -1,0 +1,30 @@
+{
+  "schema_id": "quant-spec.q0_6.alpha_dir.data_providers",
+  "schema_version": "1.0.0",
+  "effective_date": "2026-01-03",
+  "task_id": "Q0.6",
+  "task_name": "Directional Label Construction Rules",
+  "source": {
+    "document": "quant_tasks.md",
+    "section": "Task Q0.6 — Directional Label Construction Rules / Data Providers"
+  },
+  "data_types_required": [
+    "returns",
+    "volatility",
+    "regime_context"
+  ],
+  "approved_providers": [
+    {
+      "name": "Dukascopy",
+      "why_quant_qualified": "Clean intraday FX returns"
+    },
+    {
+      "name": "Stooq",
+      "why_quant_qualified": "Long-horizon return stability"
+    },
+    {
+      "name": "FRED",
+      "why_quant_qualified": "Regime overlays (risk-on/off)"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "schema_id": "quant-spec.q0_9.path_outcomes.data_providers",
+  "schema_version": "1.0.0",
+  "effective_date": "2026-01-03",
+  "task_id": "Q0.9",
+  "task_name": "Path-Dependent Outcome Labeling (SL/TP)",
+  "source": {
+    "document": "quant_tasks.md",
+    "section": "Task Q0.9 — Path-Dependent Outcome Labeling (SL/TP) / Data Providers"
+  },
+  "data_types_required": [
+    "intrabar_highs_lows",
+    "volatility_scaled_paths"
+  ],
+  "approved_providers": [
+    {
+      "name": "Dukascopy",
+      "why_quant_qualified": "Intrabar extremes available"
+    },
+    {
+      "name": "TrueFX",
+      "why_quant_qualified": "Path realism"
+    },
+    {
+      "name": "Stooq",
+      "why_quant_qualified": "Longer-horizon validation"
+    }
+  ]
+}

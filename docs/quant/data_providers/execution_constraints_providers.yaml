@@ -1,0 +1,30 @@
+{
+  "schema_id": "quant-spec.q0_3.execution_constraints.data_providers",
+  "schema_version": "1.0.0",
+  "effective_date": "2026-01-03",
+  "task_id": "Q0.3",
+  "task_name": "Execution Constraints Specification",
+  "source": {
+    "document": "quant_tasks.md",
+    "section": "Task Q0.3 — Create Execution Constraints Specification / Data Providers"
+  },
+  "data_types_required": [
+    "typical_spreads",
+    "trading_hours",
+    "liquidity_proxies"
+  ],
+  "approved_providers": [
+    {
+      "name": "Dukascopy",
+      "why_quant_qualified": "Real FX spreads & liquidity"
+    },
+    {
+      "name": "TrueFX",
+      "why_quant_qualified": "Institutional feed characteristics"
+    },
+    {
+      "name": "Broker public specs (OANDA, IBKR)",
+      "why_quant_qualified": "Real execution constraints"
+    }
+  ]
+}

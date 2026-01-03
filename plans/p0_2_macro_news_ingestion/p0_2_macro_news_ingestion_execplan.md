@@ -13,7 +13,9 @@ This task produces infrastructure only; downstream Quant attribution (Q0.7) and 
 ## Progress
 
 - [x] (2026-01-03 00:00Z) Created initial ExecPlan for P0.2.
-- [ ] (blocked) Confirm which macro/news vendors are in-scope for the initial implementation and record their payload formats and rate limits.
+- [x] (2026-01-03 00:00Z) Created GitHub tracking issue: https://github.com/mbellary/QF-downloader/issues/2
+- [ ] Populate `config/vendors/macro_feeds.json` using the Quant-approved macro provider list in `docs/quant/data_providers/macro_event_providers.yaml` (FRED, ECB Calendars, Trading Economics (free metadata)).
+- [ ] (blocked) Confirm which news-text vendors are approved for Phase 0 ingestion (Quant has not provided an approved news provider list under `docs/quant/data_providers/` as of 2026-01-03).
 - [ ] Add infra schema artifact: `docs/infra/phase0/schemas/macro_news_ingestion.yaml`.
 - [ ] Implement raw news ingestion (fetch → normalize text → normalize timestamps → persist → emit metadata).
 - [ ] Implement raw macro event ingestion (fetch → normalize timestamps → persist → emit metadata).
@@ -25,6 +27,12 @@ This task produces infrastructure only; downstream Quant attribution (Q0.7) and 
 - Observation: The repo already has environment variables for some macro-style APIs (`FRED_API_KEY`, `FMP_API_KEY`) in `src/qf_downloader/config.py`, but Phase 0 tasks specify file-based config under `/config/secrets/news_api.json` and `/config/vendors/macro_feeds.json`.
   Evidence: `src/qf_downloader/config.py` defines multiple `*_API_KEY` env vars; `data_tasks.md` references JSON files under `/config/`.
 
+- Observation: Quant has an explicit approved-provider list for macro event timing/metadata, but not for news text sources.
+  Evidence: `docs/quant/data_providers/macro_event_providers.yaml` lists approved providers (FRED, ECB Calendars, Trading Economics (free metadata)), while there is no corresponding “news” provider artifact under `docs/quant/data_providers/`.
+
+- Observation: Tracking issue created in the target implementation repo.
+  Evidence: https://github.com/mbellary/QF-downloader/issues/2
+
 ## Decision Log
 
 - Decision: Implement macro/news ingestion using the same core persistence and audit conventions as the market ingestion pipeline (P0.1): UTC-normalized timestamps, stable file naming/partitioning, and an explicit ingestion metadata ledger.
@@ -33,6 +41,14 @@ This task produces infrastructure only; downstream Quant attribution (Q0.7) and 
 
 - Decision: Treat text normalization as purely mechanical formatting (decode, normalize whitespace, preserve original content), and explicitly forbid computed fields like sentiment, topics, or scores.
   Rationale: The task requires “no embedded interpretation or labeling”.
+  Date/Author: 2026-01-03 / Copilot
+
+- Decision: Restrict Phase 0 macro event ingestion to Quant-approved providers: FRED, ECB Calendars, and Trading Economics (free metadata).
+  Rationale: Q0.7 macro attribution depends on event timestamps and classifications; using the approved set keeps provenance stable and audit-ready.
+  Date/Author: 2026-01-03 / Copilot
+
+- Decision: Track this ExecPlan via a dedicated GitHub issue in `mbellary/QF-downloader` and link it from `Progress`.
+  Rationale: Keeps Phase 0 implementation tracking tied to the living plan without duplicating status across multiple places.
   Date/Author: 2026-01-03 / Copilot
 
 ## Outcomes & Retrospective
@@ -80,6 +96,10 @@ Provide clean, timestamped, alignment-ready macro inputs for later Quant-defined
 - Macro data vendor specs (LLM Team): `/config/vendors/macro_feeds.json`
 - Quant alignment rules (Quant Q0.1): `/docs/quant/return_calculation.yaml`
 
+Quant-approved provider list:
+
+- Macro event providers (Quant Q0.7 data providers): `docs/quant/data_providers/macro_event_providers.yaml`
+
 ### Deliverables
 
 - Raw news ingestion
@@ -104,6 +124,12 @@ Provide clean, timestamped, alignment-ready macro inputs for later Quant-defined
 
    - `config/secrets/news_api.json.example`: template for local development.
    - `config/vendors/macro_feeds.json`: vendor catalog defining endpoints, auth, event schema mapping, and timestamp fields.
+
+     This file must be derived from the Quant-approved provider list in `docs/quant/data_providers/macro_event_providers.yaml`. Concretely: only these provider names may appear as macro-event ingestion sources for this task:
+
+     - FRED
+     - ECB Calendars
+     - Trading Economics (free metadata)
 
    The implementation must support env-var overrides for deployment parity (the repo already uses `.env.prod`/`.env.dev` loading in `src/qf_downloader/config.py`).
 
@@ -229,9 +255,12 @@ Internal interfaces to reuse:
 External dependencies:
 
 - Quant rules: `docs/quant/return_calculation.yaml` (timezone conventions and alignment assumptions).
+- Quant-approved macro provider list: `docs/quant/data_providers/macro_event_providers.yaml`.
 - Vendor + auth config (Phase 0): `config/vendors/macro_feeds.json` and `config/secrets/news_api.json`.
 
 Task dependencies:
 
 - Hard dependency: Q0.1 timezone and alignment conventions (already present in `docs/quant/return_calculation.yaml`).
 - Conceptual downstream dependency: Q0.7 macro event attribution will consume these raw artifacts; therefore this task must preserve provenance and avoid interpretive transformations.
+
+- Open dependency (explicit): Quant (or the LLM team with Quant sign-off) must provide an approved list of “news text” sources if news ingestion is to be enforced as a binding input contract in the same way macro events are.

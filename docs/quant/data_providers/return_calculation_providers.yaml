@@ -1,0 +1,34 @@
+{
+  "schema_id": "quant-spec.q0_1.return_calculation.data_providers",
+  "schema_version": "1.0.0",
+  "effective_date": "2026-01-03",
+  "task_id": "Q0.1",
+  "task_name": "Return Calculation Rules",
+  "source": {
+    "document": "quant_tasks.md",
+    "section": "Task Q0.1 — Create Return Calculation Rules / Data Providers"
+  },
+  "data_types_required": [
+    "fx_bid_ask_prices",
+    "session_timestamps",
+    "contract_conventions"
+  ],
+  "approved_providers": [
+    {
+      "name": "Dukascopy",
+      "why_quant_qualified": "Tick-level bid/ask, institutional realism"
+    },
+    {
+      "name": "TrueFX",
+      "why_quant_qualified": "Institutional FX feed, spread-aware"
+    },
+    {
+      "name": "Alpha Vantage",
+      "why_quant_qualified": "FX bars, stable API, open access"
+    },
+    {
+      "name": "Stooq",
+      "why_quant_qualified": "Historical FX & futures, reproducible"
+    }
+  ]
+}

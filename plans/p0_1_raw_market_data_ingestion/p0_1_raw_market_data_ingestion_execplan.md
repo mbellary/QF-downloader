@@ -13,7 +13,8 @@ This task produces infrastructure only; it must not compute labels, returns, sig
 ## Progress
 
 - [x] (2026-01-03 00:00Z) Created initial ExecPlan for P0.1.
-- [ ] (blocked) Confirm which FX vendors are in-scope for tick ingestion (initial minimal set) and record their API/format constraints in `config/vendors/fx_providers.json`.
+- [x] (2026-01-03 00:00Z) Created GitHub tracking issue: https://github.com/mbellary/QF-downloader/issues/1
+- [ ] Populate `config/vendors/fx_providers.json` using the Quant-approved provider list in `docs/quant/data_providers/return_calculation_providers.yaml` (Dukascopy, TrueFX, Alpha Vantage, Stooq).
 - [ ] Add infra schema artifact: `docs/infra/phase0/schemas/raw_market_ingestion.yaml`.
 - [ ] Implement tick ingestion pipeline (fetch → normalize timestamps → write raw artifact → emit metadata → upload/index if configured).
 - [ ] Implement OHLCV ingestion pipeline (same contract as tick ingestion).
@@ -26,6 +27,12 @@ This task produces infrastructure only; it must not compute labels, returns, sig
 - Observation: The current repository uses `src/qf_downloader/providers.yaml` for provider catalogs, but Phase 0 tasks specify JSON-based config files under `/config/vendors/*.json`.
   Evidence: `src/qf_downloader/cli.py` loads YAML via `yaml.safe_load`, while `data_tasks.md` specifies `/config/vendors/fx_providers.json`.
 
+- Observation: Quant has an explicit approved-provider list for FX price data.
+  Evidence: `docs/quant/data_providers/return_calculation_providers.yaml` lists Dukascopy, TrueFX, Alpha Vantage, and Stooq as approved providers for bid/ask prices.
+
+- Observation: Tracking issue created in the target implementation repo.
+  Evidence: https://github.com/mbellary/QF-downloader/issues/1
+
 ## Decision Log
 
 - Decision: Reuse the existing “download → dedupe → persist → (optional) upload/index” architecture already implemented by `ProviderDownloader` (`src/qf_downloader/downloader.py`), but split “provider definition” (config) from “ingestion contract” (schemas + metadata ledger) so Phase 0 outputs become binding for later phases.
@@ -34,6 +41,14 @@ This task produces infrastructure only; it must not compute labels, returns, sig
 
 - Decision: Normalize all persisted timestamps to UTC and make the normalization explicit and testable.
   Rationale: Phase 0 acceptance criteria require “no timezone ambiguity”; UTC normalization plus explicit metadata is the most enforceable interpretation.
+  Date/Author: 2026-01-03 / Copilot
+
+- Decision: Restrict Phase 0 FX market ingestion to Quant-approved providers: Dukascopy, TrueFX, Alpha Vantage, and Stooq.
+  Rationale: Phase 0 outputs are binding inputs to later phases; using only approved providers prevents the system from drifting to unvetted data quality.
+  Date/Author: 2026-01-03 / Copilot
+
+- Decision: Track this ExecPlan via a dedicated GitHub issue in `mbellary/QF-downloader` and link it from `Progress`.
+  Rationale: Keeps Phase 0 implementation tracking tied to the living plan without duplicating status across multiple places.
   Date/Author: 2026-01-03 / Copilot
 
 ## Outcomes & Retrospective
@@ -84,6 +99,10 @@ Ensure raw market data is ingested once, timestamped once, and never reinterpret
 - Session boundary rules (Quant Q0.1): `/docs/quant/return_calculation.yaml`
 - Timezone conventions (Quant Q0.1): `/docs/quant/return_calculation.yaml`
 
+Quant-approved provider list:
+
+- FX price providers (Quant Q0.1 data providers): `docs/quant/data_providers/return_calculation_providers.yaml`
+
 ### Deliverables
 
 - Deterministic FX tick ingestion
@@ -113,6 +132,13 @@ Implement Phase 0 ingestion as a thin, explicit layer on top of the current down
 
    - `config/secrets/fx_api_keys.json`: a key-value map of provider names → API keys (or references). This must never be committed with real secrets; provide a checked-in `*.example` template.
    - `config/vendors/fx_providers.json`: a provider catalog describing endpoints, auth mechanism, supported instruments, and the payload type (tick vs OHLCV) and timestamp fields.
+
+     This file must be derived from the Quant-approved provider list in `docs/quant/data_providers/return_calculation_providers.yaml`. Concretely: only these provider names may appear as ingestion sources for this task:
+
+     - Dukascopy
+     - TrueFX
+     - Alpha Vantage
+     - Stooq
 
 2. Add a Phase 0 schema under `docs/infra/phase0/schemas/raw_market_ingestion.yaml` describing:
 
@@ -246,6 +272,7 @@ Internal interfaces to preserve and reuse:
 External dependencies:
 
 - Quant rules: `docs/quant/return_calculation.yaml` (timezone + session semantics).
+- Quant-approved FX provider list: `docs/quant/data_providers/return_calculation_providers.yaml`.
 - Vendor endpoints + auth (Phase 0 config): `config/vendors/fx_providers.json` and `config/secrets/fx_api_keys.json`.
 
 Task dependencies:

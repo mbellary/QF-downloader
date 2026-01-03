@@ -1,0 +1,30 @@
+{
+  "schema_id": "quant-spec.q0_7.macro_event.data_providers",
+  "schema_version": "1.0.0",
+  "effective_date": "2026-01-03",
+  "task_id": "Q0.7",
+  "task_name": "Macro Event Return Attribution Rules",
+  "source": {
+    "document": "quant_tasks.md",
+    "section": "Task Q0.7 — Macro Event Return Attribution Rules / Data Providers"
+  },
+  "data_types_required": [
+    "event_timestamps",
+    "market_reactions",
+    "baseline_volatility"
+  ],
+  "approved_providers": [
+    {
+      "name": "FRED",
+      "why_quant_qualified": "Canonical macro event timing"
+    },
+    {
+      "name": "ECB Calendars",
+      "why_quant_qualified": "Central bank events"
+    },
+    {
+      "name": "Trading Economics (free metadata)",
+      "why_quant_qualified": "Event classification"
+    }
+  ]
+}

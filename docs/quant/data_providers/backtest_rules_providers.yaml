@@ -1,0 +1,29 @@
+{
+  "schema_id": "quant-spec.q0_2.backtest_rules.data_providers",
+  "schema_version": "1.0.0",
+  "effective_date": "2026-01-03",
+  "task_id": "Q0.2",
+  "task_name": "Backtesting Rules Specification",
+  "source": {
+    "document": "quant_tasks.md",
+    "section": "Task Q0.2 — Create Backtesting Rules Specification / Data Providers"
+  },
+  "data_types_required": [
+    "historical_price_series",
+    "spread_and_cost_proxies"
+  ],
+  "approved_providers": [
+    {
+      "name": "Dukascopy",
+      "why_quant_qualified": "Realistic spread & intraday structure"
+    },
+    {
+      "name": "Stooq",
+      "why_quant_qualified": "Long history for regime analysis"
+    },
+    {
+      "name": "Alpha Vantage",
+      "why_quant_qualified": "Consistent OHLC bars"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "schema_id": "quant-spec.q0_4.validation_metrics.data_providers",
+  "schema_version": "1.0.0",
+  "effective_date": "2026-01-03",
+  "task_id": "Q0.4",
+  "task_name": "Validation Metrics",
+  "source": {
+    "document": "quant_tasks.md",
+    "section": "Task Q0.4 — Define Validation Metrics / Data Providers"
+  },
+  "data_types_required": [
+    "returns",
+    "volatility_estimates",
+    "regime_segments"
+  ],
+  "approved_providers": [
+    {
+      "name": "Stooq",
+      "why_quant_qualified": "Long-horizon stability checks"
+    },
+    {
+      "name": "FRED",
+      "why_quant_qualified": "Macro regime overlays"
+    },
+    {
+      "name": "Alpha Vantage",
+      "why_quant_qualified": "Cross-validation consistency"
+    }
+  ]
+}
