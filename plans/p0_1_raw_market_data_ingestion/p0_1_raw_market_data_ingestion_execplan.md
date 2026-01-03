@@ -14,6 +14,9 @@ This task produces infrastructure only; it must not compute labels, returns, sig
 
 - [x] (2026-01-03 00:00Z) Created initial ExecPlan for P0.1.
 - [x] (2026-01-03 00:00Z) Created GitHub tracking issue: https://github.com/mbellary/QF-downloader/issues/1
+- [x] (2026-01-03 00:00Z) Bootstrapped local dev environment with `uv pip install -e ".[dev]"`.
+- [x] (2026-01-03 00:00Z) Ran environment verification commands and recorded current repo status (format/lint/test discovery).
+- [ ] Repo hygiene dependency: make Ruff clean + add `tests/` layout so environment checklist passes end-to-end (tracking: https://github.com/mbellary/QF-downloader/issues/3).
 - [ ] Populate `config/vendors/fx_providers.json` using the Quant-approved provider list in `docs/quant/data_providers/return_calculation_providers.yaml` (Dukascopy, TrueFX, Alpha Vantage, Stooq).
 - [ ] Add infra schema artifact: `docs/infra/phase0/schemas/raw_market_ingestion.yaml`.
 - [ ] Implement tick ingestion pipeline (fetch → normalize timestamps → write raw artifact → emit metadata → upload/index if configured).
@@ -32,6 +35,9 @@ This task produces infrastructure only; it must not compute labels, returns, sig
 
 - Observation: Tracking issue created in the target implementation repo.
   Evidence: https://github.com/mbellary/QF-downloader/issues/1
+
+- Observation: The repository is not currently clean under Ruff format/lint, and pytest does not currently collect any tests.
+  Evidence: `uv run ruff format --check .` reports multiple files “Would reformat”; `uv run ruff check .` reports import ordering/unused imports; `pytest.ini` sets `testpaths = tests` but there is no `tests/` directory yet.
 
 ## Decision Log
 
@@ -169,7 +175,28 @@ All commands below assume the repository root as the working directory.
 
 1. Environment bootstrap:
 
-   - `make setup`
+   Preferred local workflow is defined in `AGENTS_ENVIRONMENT.md`.
+
+   - Create a feature branch (do not work on `main`):
+
+     git checkout -b feature/p0-1-raw-market-ingestion
+
+   - Install dev dependencies in editable mode (creates/uses `.venv/`):
+
+     uv pip install -e ".[dev]"
+
+   - Verification checklist (must be clean before PRs):
+
+     uv run ruff format --check .
+     uv run ruff check .
+     uv run pytest --cov
+
+   Notes:
+
+   - On Windows, prefer `uv run ...` to avoid manual activation.
+   - If you do activate manually, PowerShell activation is typically:
+
+     .\.venv\Scripts\Activate.ps1
 
 2. Add configuration templates (checked in) and document how to supply real secrets locally:
 
@@ -236,6 +263,12 @@ Validation commands:
 
 - `make test SUITE=unit`
 - Optional integration (LocalStack): `APP_ENV=localstack make test SUITE=integration RUNTIME=docker`
+
+Environment validation commands (must pass before opening a PR):
+
+- `uv run ruff format --check .`
+- `uv run ruff check .`
+- `uv run pytest --cov`
 
 ## Idempotence and Recovery
 

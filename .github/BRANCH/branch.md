@@ -31,7 +31,7 @@ All work must be done in a branch **derived from `main`** — never commit direc
 | Update README badges | `docs/update-badges` |
 | Improve greet() structure | `refactor/greet-cleanup` |
 | Add missing coverage tests | `tests/add-cli-tests` |
-
+|Raw data ingetsion | `task/raw-data-ingestion` |
 ---
 
 ## 📌 Creating a branch

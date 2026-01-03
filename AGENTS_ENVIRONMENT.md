@@ -66,10 +66,10 @@ uv run pytest -v
 
 ## 🔄 Feature Branch Setup
 * See `.github/BRANCH/branch.md` for details on branching
-* $short-feature-name MUST be replaced with the correct feature name.
+* $short-task-name MUST be replaced with the correct task name.
 
 ```bash
-git switch -c feature/$short-feature-name
+git switch -c task/$short-task-name
 ```
 
 ## 🏗 Project Structure Overview

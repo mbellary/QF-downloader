@@ -16,7 +16,9 @@ Use the instructions below and the tools available to you to assist the team.
 # Doing Plans
 - for assistant provided plans, you MUST create separate github issues if the plans are not related or requires sub-plans.
 - ALWAYS use github-mcp-server tool to create or update github issues to {GITHUB_REPO}.
-- for each of the assistant provided Data Engineering plans/$short-task-name/$short-task-name_execplan.md plan, perform the following:    
+- for each of the assistant provided Data Engineering plans/$short-task-name/$short-task-name_execplan.md plan, perform the following: 
+    - VERY IMPORTANT : you MUST ensure you are in the feature/$short-task-name branch before performing any task. if not, create and switch to the feature/$short-task-name branch.
+    - VERY IMPORTANT : you MUST ensure you are in the correct virtual environment before performing any task. if not, setup and activate the correct virtual environment.   
     - ALWAYS use 'mcp_io_github_git_issue_write' tool to create a github issue in remote repository {GITHUB_REPO}.
     - you MUST use the sections in the execution plan file to create the github issue.
     - Gating Checks:

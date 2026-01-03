@@ -14,6 +14,9 @@ This task produces infrastructure only; downstream Quant attribution (Q0.7) and 
 
 - [x] (2026-01-03 00:00Z) Created initial ExecPlan for P0.2.
 - [x] (2026-01-03 00:00Z) Created GitHub tracking issue: https://github.com/mbellary/QF-downloader/issues/2
+- [x] (2026-01-03 00:00Z) Bootstrapped local dev environment with `uv pip install -e ".[dev]"`.
+- [x] (2026-01-03 00:00Z) Ran environment verification commands and recorded current repo status (format/lint/test discovery).
+- [ ] Repo hygiene dependency: make Ruff clean + add `tests/` layout so environment checklist passes end-to-end (tracking: https://github.com/mbellary/QF-downloader/issues/3).
 - [ ] Populate `config/vendors/macro_feeds.json` using the Quant-approved macro provider list in `docs/quant/data_providers/macro_event_providers.yaml` (FRED, ECB Calendars, Trading Economics (free metadata)).
 - [ ] (blocked) Confirm which news-text vendors are approved for Phase 0 ingestion (Quant has not provided an approved news provider list under `docs/quant/data_providers/` as of 2026-01-03).
 - [ ] Add infra schema artifact: `docs/infra/phase0/schemas/macro_news_ingestion.yaml`.
@@ -32,6 +35,9 @@ This task produces infrastructure only; downstream Quant attribution (Q0.7) and 
 
 - Observation: Tracking issue created in the target implementation repo.
   Evidence: https://github.com/mbellary/QF-downloader/issues/2
+
+- Observation: The repository is not currently clean under Ruff format/lint, and pytest does not currently collect any tests.
+  Evidence: `uv run ruff format --check .` reports multiple files “Would reformat”; `uv run ruff check .` reports import ordering/unused imports; `pytest.ini` sets `testpaths = tests` but there is no `tests/` directory yet.
 
 ## Decision Log
 
@@ -165,7 +171,28 @@ All commands below assume the repository root as the working directory.
 
 1. Environment bootstrap:
 
-   - `make setup`
+   Preferred local workflow is defined in `AGENTS_ENVIRONMENT.md`.
+
+   - Create a feature branch (do not work on `main`):
+
+     git checkout -b feature/p0-2-macro-news-ingestion
+
+   - Install dev dependencies in editable mode (creates/uses `.venv/`):
+
+     uv pip install -e ".[dev]"
+
+   - Verification checklist (must be clean before PRs):
+
+     uv run ruff format --check .
+     uv run ruff check .
+     uv run pytest --cov
+
+   Notes:
+
+   - On Windows, prefer `uv run ...` to avoid manual activation.
+   - If you do activate manually, PowerShell activation is typically:
+
+     .\.venv\Scripts\Activate.ps1
 
 2. Add configuration templates:
 
@@ -217,6 +244,12 @@ Validation commands:
 
 - `make test SUITE=unit`
 - Optional integration (LocalStack): `APP_ENV=localstack make test SUITE=integration RUNTIME=docker`
+
+Environment validation commands (must pass before opening a PR):
+
+- `uv run ruff format --check .`
+- `uv run ruff check .`
+- `uv run pytest --cov`
 
 ## Idempotence and Recovery
 
