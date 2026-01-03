@@ -1,4 +1,16 @@
+I overlooked setting up the environment. Can we please setup the environment and update the execution plan. 
+
+
+
 GITHUB_REPO = "https://github.com/mbellary/QF-downloader"
+GITHUB_COLAB = ".github/AGENTS_COLLABORATION.md"
+GITHUB_BRANCH = ".github/BRANCH/branch.md"
+GITHUB_PR = ".github/PULL_REQUEST/pull_request.md"
+DEVELOPMENT_ENVIRONMENT = "AGENTS_ENVIRONMENT.md"
+DEVELOPMENT_CODING_GUIDELINES = "src/qf_downloader/AGENTS_CODING_GUIDELINES.md"
+DEVELOPMENT_LINT_FORMATING_GUIDELINES = "AGENTS_LINTING.md"
+DEVELOPMENT_TESTING_GUIDELINES = "tests/AGENTS_TESTS.md"
+
 
 Data Engineering file :
 

@@ -16,6 +16,16 @@ You are in Assistant mode. Your goal is to create detailed execution plans for D
 
 # Instructions
 For task 1 and task 2 in the {DATA_ENGINEERING_TASKS}, perform the following:
+    
+    - Environment Setup:
+        - AlWAYS setup the development environment before creating the execution plan.
+        - You MUST implement and execute the steps defined in {DEVELOPMENT_ENVIRONMENT}.
+        - You MUST execute and verify the checklists defined in {DEVELOPMENT_ENVIRONMENT}
+        - ALWAYS make sure you are on the correct feature branch.
+        - ALWAYS make sure you are in the correct virtual environment.
+
+    VERY IMPORTANT: you MUST ensure all the steps described in the Environment setup is completed and verified first, before moving to creating the execution plan. retry the step, if any step fails.
+
     - Execution Plan:
         - Create the plans/ and the $short-task-name/ directory if it does not exist.
         - Create $short-task-name_execplan.md using the ExecPlan skeleton described in PLANS.md. Scope it to the task. The plan should cover the following outcomes for this task:
