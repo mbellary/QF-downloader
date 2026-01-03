@@ -1,0 +1,5 @@
+GITHUB_REPO = "https://github.com/mbellary/QF-downloader"
+
+Data Engineering file :
+
+DATA_ENGINEERING_TASKS = "data_tasks.md"

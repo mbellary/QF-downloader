@@ -3,7 +3,7 @@ description: 'Program Manager agent that manages and tracks the Github artifacts
 tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web/fetch', 'ms-python.python/getPythonEnvironmentInfo', 'ms-python.python/getPythonExecutableCommand', 'ms-python.python/installPythonPackage', 'ms-python.python/configurePythonEnvironment', 'todo', 'github/get_me','github/get_team_members','github/get_teams','github/create_branch','github/create_or_update_file','github/create_repository','github/get_commit','github/get_file_contents','github/list_branches','github/list_commits','github/search_code','github/search_repositories','github/add_issue_comment','github/assign_copilot_to_issue','github/get_label','github/issue_read','github/issue_write','github/list_issue_types','github/list_issues','github/search_issues','github/sub_issue_write','github/add_comment_to_pending_review','github/create_pull_request','github/list_pull_requests','github/merge_pull_request','github/pull_request_read','github/pull_request_review_write','github/request_copilot_review','github/search_pull_requests','github/update_pull_request','github/update_pull_request_branch','github/search_users']
 handoffs:
   - label: Start Implementation
-    agent: Quant Researcher
+    agent: Data Engineering Architect
     prompt: The Program manager has created the github issue for tracking the request and updated the execution plan with the status. please proceed with designing the feature.
     send: true
 ---
