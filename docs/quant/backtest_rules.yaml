@@ -1,0 +1,76 @@
+{
+  "schema_id": "quant-spec.q0_2.backtest_rules",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.2",
+  "effective_date": "2026-01-02",
+  "principle_binding": {
+    "avoid_lookahead": true,
+    "execution_bias_must_be_modeled": true
+  },
+  "inputs": {
+    "signal_stream": {
+      "required_fields": ["timestamp", "instrument", "signal"],
+      "signal_enum": ["BUY", "SELL", "FLAT"]
+    },
+    "market_prices": {
+      "required": true,
+      "price_source": "must_conform_to_docs/quant/return_calculation.yaml"
+    }
+  },
+  "time": {
+    "timezone": "UTC",
+    "signal_to_execution_lag": {
+      "required": true,
+      "definition": "Orders are placed using information available at signal timestamp; fills occur no earlier than signal_timestamp + lag.",
+      "lag_seconds_min": 0
+    }
+  },
+  "trade_model": {
+    "entry_exit_logic": {
+      "supported": ["market_on_next_bar", "limit_with_timeout"],
+      "default": "market_on_next_bar"
+    },
+    "position_sizing": {
+      "required": true,
+      "allowed_methods": ["fixed_notional", "volatility_scaled", "risk_budget"],
+      "must_reference_execution_constraints": true
+    },
+    "trade_frequency_limits": {
+      "required": true,
+      "max_trades_per_day": {"type": "integer", "min": 0}
+    }
+  },
+  "cost_model": {
+    "components": ["spread", "slippage", "commission", "financing_rollover"],
+    "spread": {"required": true, "unit": "pips"},
+    "slippage": {"required": true, "unit": "pips", "model": "explicit"},
+    "commission": {"required": false, "unit": "account_ccy"},
+    "financing_rollover": {
+      "required": false,
+      "rule": "If modeled, MUST be separate from spot-price returns and applied only at declared rollover times."
+    }
+  },
+  "anti_bias": {
+    "lookahead_forbidden": true,
+    "survivorship_bias_policy": "instruments_universe_must_be_declared_per_date"
+  },
+  "outputs": {
+    "required_trade_fields": [
+      "trade_id",
+      "instrument",
+      "entry_timestamp",
+      "exit_timestamp",
+      "entry_price",
+      "exit_price",
+      "direction",
+      "pnl_pips",
+      "pnl_return",
+      "cost_pips",
+      "reason_codes"
+    ]
+  },
+  "references": {
+    "return_calculation": "docs/quant/return_calculation.yaml",
+    "execution_constraints": "docs/quant/execution_constraints.yaml"
+  }
+}

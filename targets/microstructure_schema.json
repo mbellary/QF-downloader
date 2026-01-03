@@ -1,0 +1,30 @@
+{
+  "schema_id": "quant-spec.targets.microstructure_schema",
+  "schema_version": "1.0.0",
+  "effective_date": "2026-01-02",
+  "dataset": "targets/microstructure_targets.parquet",
+  "target_class_definitions": {
+    "ORDER_FLOW_IMBALANCE": "Continuous or thresholded OFI-based target",
+    "LIQUIDITY_SHOCK": "Liquidity withdrawal or sudden depth loss proxy",
+    "SPREAD_EXPANSION": "Spread widening event",
+    "SHORT_HORIZON_IMPACT": "Short-horizon price impact measure"
+  },
+  "horizon_definitions": {
+    "max_seconds": 300,
+    "rule": "Horizon must be <= 5 minutes."
+  },
+  "threshold_parameters": {
+    "ofi_thresholds": {"type": ["object", "null"]}
+  },
+  "tick_aggregation_rules": {
+    "rule": "Aggregation windows must end at or before the target timestamp; future ticks forbidden."
+  },
+  "provenance": {
+    "data_provider": "string",
+    "data_version": "string"
+  },
+  "validation_and_leakage_checks": {
+    "no_future_ticks": true,
+    "horizon_lte_300": true
+  }
+}

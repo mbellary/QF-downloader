@@ -1,0 +1,49 @@
+{
+  "schema_id": "quant-spec.q0_11.kpi_thresholds",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.11",
+  "effective_date": "2026-01-02",
+  "thresholds": [
+    {
+      "phase": "PHASE_1",
+      "required": [
+        {"kpi_id": "NER", "type": "relative_to_baseline", "delta_min": 0.0},
+        {"kpi_id": "QLIKE", "type": "beat_baseline", "baseline": "naive_rolling_rv"},
+        {"kpi_id": "REGIME_STABILITY", "type": "min_absolute", "min": 0.0}
+      ]
+    },
+    {
+      "phase": "PHASE_2",
+      "required": [
+        {"kpi_id": "HR_COND", "type": "gt_other", "other_kpi": "HR_UNCOND"},
+        {"kpi_id": "REGIME_STABILITY", "type": "min_absolute", "min": 0.0}
+      ]
+    },
+    {
+      "phase": "PHASE_3",
+      "required": [
+        {"kpi_id": "NG", "type": "min_absolute", "min": 0.0},
+        {"kpi_id": "VDR", "type": "min_absolute", "min": 0.0}
+      ]
+    },
+    {
+      "phase": "PHASE_4",
+      "required": [
+        {"kpi_id": "NG", "type": "max_degradation", "tolerance": 0.0},
+        {"kpi_id": "QLIKE", "type": "max_degradation", "tolerance": 0.0}
+      ]
+    },
+    {
+      "phase": "PHASE_5",
+      "required": [
+        {"kpi_id": "NER", "type": "max_degradation", "tolerance": 0.0},
+        {"kpi_id": "REGIME_STABILITY", "type": "max_degradation", "tolerance": 0.0}
+      ]
+    }
+  ],
+  "return_kpi_gate": {
+    "kpi_id": "SHARPE",
+    "rule": "SHARPE may only be used as a gate after all required NOISE/VOLATILITY/REGIME/CONDITIONAL_ALPHA gates pass.",
+    "enforced": true
+  }
+}

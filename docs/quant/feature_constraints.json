@@ -1,0 +1,108 @@
+{
+  "schema_id": "quant-spec.q0_10.feature_constraints",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.10",
+  "effective_date": "2026-01-02",
+  "authority": {
+    "machine_readable_is_authoritative": true,
+    "markdown_is_explanatory_only": true
+  },
+  "guiding_principle": {
+    "statement": "Features must help separate signal from noise and predict volatility/regimes more reliably than returns.",
+    "non_negotiable_rule": "If a feature improves returns but degrades noise, volatility, or regime stability, it is invalid regardless of backtest performance."
+  },
+  "intent_taxonomy": {
+    "required_exactly_one_primary_intent": true,
+    "intents": {
+      "ALPHA_SIGNAL": {
+        "description": "Economically interpretable predictors of conditional return.",
+        "constraints": {
+          "must_not_be_used_without_gating": true,
+          "must_declare_prediction_horizon_alignment": true,
+          "must_not_encode_future_returns": true
+        }
+      },
+      "NOISE": {
+        "description": "Detect randomness, microstructure distortion, jumps, and unreliable trading conditions.",
+        "constraints": {
+          "allowed_usage_areas": ["NOISE_GATING"],
+          "forbidden_usage_areas": ["DIRECTIONAL_PREDICTION"],
+          "must_be_contemporaneous_or_backward_looking": true
+        }
+      },
+      "VOLATILITY": {
+        "description": "Explain/predict magnitude and clustering of variability.",
+        "constraints": {
+          "must_not_encode_directional_bias": true,
+          "allowed_usage_areas": ["VOLATILITY_PREDICTION", "POSITION_SIZING", "LABEL_SCALING", "TRADE_GATING"],
+          "must_be_horizon_consistent_with_sigma_targets": true
+        }
+      },
+      "REGIME": {
+        "description": "Identify latent market states that govern signal/noise/volatility behavior.",
+        "constraints": {
+          "must_be_state_descriptive_not_outcome_predictive": true,
+          "must_not_be_derived_from_realized_pnl": true,
+          "allowed_usage_areas": ["REGIME_INFERENCE", "MODEL_SELECTION", "FUSION_WEIGHTING"]
+        }
+      },
+      "MACRO_EXOGENOUS": {
+        "description": "Represent external information impacting volatility/regimes or structural behavior.",
+        "constraints": {
+          "must_define_event_alignment_windows": true,
+          "must_specify_reaction_horizon": true,
+          "must_not_leak_post_event_outcomes": true
+        }
+      }
+    }
+  },
+  "usage_areas": [
+    "DIRECTIONAL_PREDICTION",
+    "VOLATILITY_PREDICTION",
+    "REGIME_INFERENCE",
+    "NOISE_GATING",
+    "POSITION_SIZING",
+    "EXECUTION_LOGIC",
+    "LABEL_SCALING",
+    "TRADE_GATING",
+    "MODEL_SELECTION",
+    "FUSION_WEIGHTING"
+  ],
+  "usage_matrix": {
+    "EXECUTION_LOGIC": {"default": "DISALLOWED"},
+    "DIRECTIONAL_PREDICTION": {"default": "CONDITIONAL"},
+    "VOLATILITY_PREDICTION": {"default": "ALLOWED"},
+    "REGIME_INFERENCE": {"default": "ALLOWED"},
+    "NOISE_GATING": {"default": "ALLOWED"},
+    "POSITION_SIZING": {"default": "CONDITIONAL"}
+  },
+  "temporal_constraints": {
+    "required_fields": ["lookback_horizon", "update_frequency", "alignment", "latency_tolerance"],
+    "alignment_enum": ["TICK", "BAR", "SESSION", "EVENT"],
+    "update_frequency_enum": ["TICK", "BAR", "SESSION", "EVENT_DRIVEN"],
+    "rule": "Features violating declared temporal constraints are invalid."
+  },
+  "information_leakage_rules": {
+    "explicitly_prohibited": [
+      "future_returns_or_prices",
+      "realized_pnl_encoding",
+      "post_trade_information",
+      "construction_depends_on_target_outcomes"
+    ],
+    "causality_requirement": "All features must be causally valid at inference time."
+  },
+  "required_feature_metadata": {
+    "fields": [
+      "feature_name",
+      "primary_intent",
+      "economic_rationale",
+      "horizon_alignment",
+      "allowed_usage_areas",
+      "leakage_assessment",
+      "lookback_horizon",
+      "update_frequency",
+      "alignment",
+      "latency_tolerance"
+    ]
+  }
+}

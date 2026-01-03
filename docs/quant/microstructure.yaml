@@ -1,0 +1,48 @@
+{
+  "schema_id": "quant-spec.q0_8.microstructure_targets",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.8",
+  "effective_date": "2026-01-02",
+  "target_classes": [
+    "ORDER_FLOW_IMBALANCE",
+    "LIQUIDITY_SHOCK",
+    "SPREAD_EXPANSION",
+    "SHORT_HORIZON_IMPACT"
+  ],
+  "temporal_alignment": {
+    "timezone": "UTC",
+    "tick_alignment_rule": "Targets must be computed from ticks at or before the target timestamp; no future ticks are permitted."
+  },
+  "ofi_definition": {
+    "definition": "OFI = sum(aggressive_buy_volume - aggressive_sell_volume) over the microstructure horizon",
+    "required_inputs": ["aggressive_buy_volume", "aggressive_sell_volume"],
+    "thresholding": {
+      "allowed": true,
+      "rule": "If OFI is thresholded into classes, thresholds must be declared in metadata."
+    }
+  },
+  "horizon_constraints": {
+    "max_seconds": 300,
+    "rule": "Microstructure horizons must be <= 5 minutes and isolated from directional horizons."
+  },
+  "forbidden": [
+    "using_future_ticks",
+    "horizon_gt_5_minutes",
+    "redefining_ofi_logic_in_derived_artifacts"
+  ],
+  "derived_artifact_contracts": {
+    "dataset_path": "targets/microstructure_targets.parquet",
+    "schema_path": "targets/microstructure_schema.json"
+  },
+  "required_fields": [
+    "timestamp",
+    "instrument",
+    "microstructure_horizon",
+    "aggressive_buy_volume",
+    "aggressive_sell_volume",
+    "order_flow_imbalance",
+    "micro_target_class",
+    "spread_snapshot",
+    "liquidity_state_flag"
+  ]
+}

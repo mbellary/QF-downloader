@@ -1,0 +1,42 @@
+{
+  "schema_id": "quant-spec.q0_9.path_outcomes",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.9",
+  "effective_date": "2026-01-02",
+  "barrier_definition": {
+    "volatility_scaled": true,
+    "sl": "SL = -k_sl * sigma_t",
+    "tp": "TP = +k_tp * sigma_t",
+    "k_sl": {"type": "number", "min_exclusive": 0},
+    "k_tp": {"type": "number", "min_exclusive": 0},
+    "sigma_source_must_be_declared": true
+  },
+  "path_evaluation": {
+    "uses_intrabar_extremes": true,
+    "required_path_fields": ["intrabar_high", "intrabar_low"],
+    "evaluation_rule": "Barriers are evaluated against intrabar extremes between entry and horizon end.",
+    "tie_breaking": {
+      "required": true,
+      "default_policy": "conservative_sl_first",
+      "allowed_policies": ["conservative_sl_first", "optimistic_tp_first", "unknown_order_emit_ambiguous"],
+      "note": "If both SL and TP are reachable within a bar and tick order is unknown, default must be conservative (SL first)."
+    }
+  },
+  "outcomes": {
+    "label_set": ["SL_hit", "TP_hit", "None"],
+    "time_to_event_required": true
+  },
+  "derived_artifact_contracts": {
+    "dataset_path": "targets/path_outcomes.parquet",
+    "metadata_path": "targets/path_label_metadata.json"
+  },
+  "required_dataset_fields": [
+    "trade_id",
+    "entry_timestamp",
+    "SL_level",
+    "TP_level",
+    "first_barrier_hit",
+    "time_to_event",
+    "realized_path_extremes"
+  ]
+}

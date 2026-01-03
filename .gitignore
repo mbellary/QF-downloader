@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+grafana_data/*
+
+localstack_data/*
+
+data/raw/*
+data/customer/*
+
+.vscode/

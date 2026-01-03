@@ -1,0 +1,14 @@
+
+FROM python:3.13-slim
+WORKDIR /app
+COPY . .
+# Ensure pip and build tools are recent
+RUN python -m pip install --upgrade pip setuptools wheel
+# Install uv (optional) and then install project with dev extras so pytest is available
+RUN python -m pip install uv
+# attempt to use uv to sync if available (non-fatal)
+RUN uv sync --dev || true
+# Install project in editable mode with dev dependencies (includes pytest)
+RUN python -m pip install -e '.[dev]'
+
+CMD ["pytest"]

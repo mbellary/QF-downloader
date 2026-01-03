@@ -1,0 +1,208 @@
+providers:
+
+  ###########################################
+  # 1  TECHNICAL / PRICE DATA PROVIDERS
+  ###########################################
+
+  - name: "fx_exchangerate_host_hourly"
+    type: "api"
+    url: "https://api.exchangerate.host/timeseries"
+    method: "GET"
+    supports_date_window: true
+    params:
+      base: "EUR"
+      symbols: "USD"
+      start_date: "{start_date}"
+      end_date: "{end_date}"
+      access_key: "FX_API_KEY"
+    save_path: "raw/eurusd/price/exchangerate_host"
+    content_type: "json"
+    auth:
+      type: none
+    poll_interval: 3600
+    description: "Free hourly/daily exchange rate data for EUR/USD, supports date ranges."
+
+  - name: "fx_frankfurter_daily"
+    type: "api"
+    url: "https://api.frankfurter.app"
+    method: "GET"
+    supports_date_window: true
+    params:
+      from: "{start_date}"
+      to: "{end_date}"
+      from_currency: "EUR"
+      to_currency: "USD"
+    save_path: "raw/eurusd/price/frankfurter"
+    content_type: "json"
+    auth:
+      type: none
+    poll_interval: 86400
+    description: "Daily EUR/USD rates with ECB-backed data."
+
+  - name: "fx_twelvedata_hourly"
+    type: "api"
+    url: "https://api.twelvedata.com/time_series"
+    method: "GET"
+    supports_date_window: false
+    params:
+      symbol: "EUR/USD"
+      interval: "1h"
+      outputsize: "5000"
+      apikey_env: "TWELVEDATA_API_KEY"
+    save_path: "raw/eurusd/price/twelvedata"
+    content_type: "json"
+    auth:
+      type: query_api_key
+      key_param_name: "apikey"
+      api_key_env: "TWELVEDATA_API_KEY"
+    poll_interval: 3600
+    description: "Free tier supports intraday EUR/USD OHLC data for recent history."
+
+  - name: "fx_tradermade_hourly"
+    type: "api"
+    url: "https://marketdata.tradermade.com/api/v1/live"
+    method: "GET"
+    supports_date_window: false
+    params:
+      currency: "EURUSD"
+      api_key_env: "TMADE_API_KEY"
+    save_path: "raw/eurusd/price/tradermade"
+    content_type: "json"
+    auth:
+      type: query_api_key
+      key_param_name: "api_key"
+      api_key_env: "TMADE_API_KEY"
+    poll_interval: 1800
+    description: "TraderMade live rates for EUR/USD (limited free requests)."
+
+  - name: "fx_financialmodelingprep_daily"
+    type: "api"
+    url: "https://financialmodelingprep.com/api/v3/forex/EURUSD"
+    method: "GET"
+    supports_date_window: false
+    params:
+      apikey_env: "FMP_API_KEY"
+    save_path: "raw/eurusd/price/fmp"
+    content_type: "json"
+    auth:
+      type: query_api_key
+      key_param_name: "apikey"
+      api_key_env: "FMP_API_KEY"
+    poll_interval: 86400
+    description: "FMP API for daily EUR/USD FX rates."
+
+  ###########################################
+  # 2 MACRO / FUNDAMENTAL DATA PROVIDERS
+  ###########################################
+
+  - name: "econ_tradingeconomics_eu_us"
+    type: "api"
+    url: "https://api.tradingeconomics.com/calendar"
+    method: "GET"
+    supports_date_window: false
+    params:
+      country: "euro area,united states"
+      importance: "2,3"
+      c: "guest:guest"
+    save_path: "raw/eurusd/macro/tradingeconomics_calendar"
+    content_type: "json"
+    auth:
+      type: none
+    poll_interval: 10800
+    description: "Economic calendar and event data for EU and US (guest access)."
+
+  - name: "econ_fred_interest_rates"
+    type: "api"
+    url: "https://api.stlouisfed.org/fred/series/observations"
+    method: "GET"
+    supports_date_window: false
+    params:
+      series_id: "FEDFUNDS"
+      api_key_env: "FRED_API_KEY"
+      file_type: "json"
+    save_path: "raw/eurusd/macro/fred_interest_rates"
+    content_type: "json"
+    auth:
+      type: query_api_key
+      key_param_name: "api_key"
+      api_key_env: "FRED_API_KEY"
+    poll_interval: 86400
+    description: "US Federal Funds Rate — key input for USD macro impact."
+
+  - name: "econ_fred_eu_interest_rates"
+    type: "api"
+    url: "https://api.stlouisfed.org/fred/series/observations"
+    method: "GET"
+    supports_date_window: false
+    params:
+      series_id: "IRSTCI01EZM156N"
+      api_key_env: "FRED_API_KEY"
+      file_type: "json"
+    save_path: "raw/eurusd/macro/fred_eu_interest_rates"
+    content_type: "json"
+    auth:
+      type: query_api_key
+      key_param_name: "api_key"
+      api_key_env: "FRED_API_KEY"
+    poll_interval: 86400
+    description: "ECB Short-Term Interest Rate (Eurozone) from FRED."
+
+  - name: "econ_fred_cpi_us"
+    type: "api"
+    url: "https://api.stlouisfed.org/fred/series/observations"
+    method: "GET"
+    supports_date_window: false
+    params:
+      series_id: "CPIAUCSL"
+      api_key_env: "FRED_API_KEY"
+      file_type: "json"
+    save_path: "raw/eurusd/macro/fred_cpi_us"
+    content_type: "json"
+    auth:
+      type: query_api_key
+      key_param_name: "api_key"
+      api_key_env: "FRED_API_KEY"
+    poll_interval: 86400
+    description: "US CPI (All Urban Consumers) — high-impact inflation indicator."
+
+  - name: "econ_fred_cpi_eu"
+    type: "api"
+    url: "https://api.stlouisfed.org/fred/series/observations"
+    method: "GET"
+    supports_date_window: false
+    params:
+      series_id: "CPALTT01EZM661N"
+      api_key_env: "FRED_API_KEY"
+      file_type: "json"
+    save_path: "raw/eurusd/macro/fred_cpi_eu"
+    content_type: "json"
+    auth:
+      type: query_api_key
+      key_param_name: "api_key"
+      api_key_env: "FRED_API_KEY"
+    poll_interval: 86400
+    description: "Eurozone CPI (All Items) from FRED/Eurostat."
+
+  - name: "econ_oecd_gdp_us_eu"
+    type: "api"
+    url: "https://stats.oecd.org/SDMX-JSON/data/DP_LIVE/.GDP.TOT.A/all?contentType=csv"
+    method: "GET"
+    supports_date_window: false
+    save_path: "raw/eurusd/macro/oecd_gdp"
+    content_type: "csv"
+    auth:
+      type: none
+    poll_interval: 604800
+    description: "OECD GDP data for US and EU (quarterly, public CSV)."
+
+  - name: "econ_ecb_policy_rate"
+    type: "api"
+    url: "https://data-api.ecb.europa.eu/service/data/FM.M.U2.EUR.4F.KR.MRR_FR.LEV"
+    method: "GET"
+    supports_date_window: false
+    save_path: "raw/eurusd/macro/ecb_policy_rate"
+    content_type: "json"
+    auth:
+      type: none
+    poll_interval: 604800
+    description: "ECB Main Refinancing Rate — direct source for Euro area policy rate."

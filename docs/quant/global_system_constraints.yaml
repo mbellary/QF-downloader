@@ -1,0 +1,38 @@
+{
+  "schema_id": "quant-spec.q0g.global_system_constraints",
+  "schema_version": "1.0.0",
+  "effective_date": "2026-01-02",
+  "authority": {
+    "machine_readable_is_authoritative": true,
+    "markdown_is_explanatory_only": true,
+    "enforcement_note": "Downstream systems must fail validation if any produced artifact violates these constraints or the referenced schemas."
+  },
+  "non_negotiable_principle": {
+    "statement": "Directional return prediction is downstream; volatility (σ), noise (ε), and regimes are primary predictive objects.",
+    "failure_condition": "Any change that improves return metrics while degrading noise separation, volatility accuracy, or regime stability is a failure regardless of P&L."
+  },
+  "q0_structural_rule": {
+    "declarative_coequal": true,
+    "no_temporal_dependencies": true,
+    "allowed_inputs": ["task-local specifications", "raw exogenous data"],
+    "forbidden_inputs": ["outputs of other Q0 tasks", "runtime artifacts"],
+    "note": "Tasks may reference other Q0 artifacts for conceptual alignment, but must not require them to exist first."
+  },
+  "global_constraint_artifacts": [
+    {"path": "docs/quant/system_kpis.yaml", "purpose": "Defines noise-first success criteria and phase gates"},
+    {"path": "docs/quant/loss_constraints.yaml", "purpose": "Defines allowed and forbidden ML objectives"},
+    {"path": "docs/quant/feature_constraints.json", "purpose": "Governs feature intent, usage, and leakage"},
+    {"path": "docs/quant/strategy_objectives.yaml", "purpose": "Defines business-level trading intent"}
+  ],
+  "versioning": {
+    "require_schema_version": true,
+    "schema_version_format": "semver",
+    "immutability_rule": "docs/quant/ is immutable unless schema_version bump occurs in every modified machine-readable artifact.",
+    "freeze_marker": "docs/quant/FROZEN.md"
+  },
+  "consistency_requirements": {
+    "no_forward_dependencies": true,
+    "single_owner_per_artifact": true,
+    "artifact_paths_are_canonical": true
+  }
+}

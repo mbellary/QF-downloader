@@ -1,0 +1,21 @@
+{
+  "schema_id": "quant-spec.targets.path_outcomes",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.9",
+  "effective_date": "2026-01-02",
+  "dataset": {"path": "targets/path_outcomes.parquet", "format": "parquet"},
+  "fields": [
+    {"name": "trade_id", "type": "string", "required": true},
+    {"name": "entry_timestamp", "type": "string", "required": true, "constraints": ["iso8601_utc"]},
+    {"name": "SL_level", "type": "number", "required": true},
+    {"name": "TP_level", "type": "number", "required": true},
+    {"name": "first_barrier_hit", "type": "string", "required": true, "constraints": ["in_outcome_labels"]},
+    {"name": "time_to_event", "type": "number", "required": true, "constraints": ["non_negative"]},
+    {"name": "realized_path_extremes", "type": "object", "required": true}
+  ],
+  "constraints": {
+    "outcome_labels": ["SL_hit", "TP_hit", "None"],
+    "time_to_event_unit": "seconds_or_bars_must_be_declared_in_metadata"
+  },
+  "references": {"normative_spec": "docs/quant/path_outcomes.yaml"}
+}

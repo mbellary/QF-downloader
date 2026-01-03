@@ -1,0 +1,56 @@
+{
+  "schema_id": "quant-spec.q0_7.macro_event",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.7",
+  "effective_date": "2026-01-02",
+  "event_classes": ["CPI", "NFP", "RATE_DECISION", "GDP", "PMI"],
+  "timestamping": {
+    "timezone": "UTC",
+    "alignment_rule": "Event timestamps must be mapped to market timestamps deterministically; if an event occurs between bars, the mapping rule must be declared (e.g., next bar close)."
+  },
+  "event_windows": {
+    "pre_window": {"unit": "minutes", "min": 0},
+    "post_window": {"unit": "minutes", "min": 0},
+    "per_class_overrides_allowed": true
+  },
+  "baseline": {
+    "definition_required": true,
+    "allowed_methods": ["pre_event_mean_return", "matched_non_event_window", "model_based_expected_return"],
+    "rule": "Baseline definition must not use post-event information."
+  },
+  "abnormal_return": {
+    "definition": "AR = R_post - E[R|baseline]",
+    "optional_volatility_normalization": {
+      "enabled": true,
+      "definition": "AR_norm = AR / sigma_pre",
+      "sigma_pre_source_must_be_declared": true
+    }
+  },
+  "delayed_reaction": {
+    "allowed": true,
+    "must_record_peak_reaction_timestamp": true,
+    "may_record_decay_metric": true
+  },
+  "overlap_policy": {
+    "required": true,
+    "allowed_policies": ["exclude_overlaps", "priority_by_class", "merge_if_same_class"],
+    "default": "exclude_overlaps"
+  },
+  "derived_artifact_contracts": {
+    "dataset_path": "targets/macro_event_returns.csv",
+    "metadata_path": "targets/macro_event_metadata.json"
+  },
+  "required_dataset_fields": [
+    "event_id",
+    "event_type",
+    "event_timestamp",
+    "pre_event_window_return",
+    "post_event_window_return",
+    "abnormal_return"
+  ],
+  "optional_dataset_fields": [
+    "normalized_abnormal_return",
+    "peak_reaction_timestamp",
+    "reaction_decay_metric"
+  ]
+}

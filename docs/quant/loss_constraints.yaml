@@ -1,0 +1,53 @@
+{
+  "schema_id": "quant-spec.q0_12.loss_constraints",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.12",
+  "effective_date": "2026-01-02",
+  "non_negotiable_rule": "Any iteration that improves returns while degrading noise separation, volatility accuracy, or regime stability is a failure regardless of P&L.",
+  "allowed_losses": {
+    "NOISE_MODEL": {
+      "primary": ["NEG_LOG_LIKELIHOOD"],
+      "optional": ["JUMP_CLASSIFICATION_CROSS_ENTROPY"],
+      "forbidden": ["RETURNS_REGRESSION_MSE", "PNL_OPTIMIZATION", "SHARPE_OPTIMIZATION"]
+    },
+    "VOLATILITY_MODEL": {
+      "primary": ["QLIKE"],
+      "secondary": ["LOG_MSE"],
+      "forbidden": ["RETURNS_REGRESSION_MSE", "PNL_OPTIMIZATION", "SHARPE_OPTIMIZATION"]
+    },
+    "REGIME_MODEL": {
+      "primary": ["LOG_LIKELIHOOD"],
+      "required_metrics": ["TRANSITION_ENTROPY", "MUTUAL_INFORMATION_WITH_VOLATILITY"],
+      "forbidden": ["PNL_OPTIMIZATION", "SHARPE_OPTIMIZATION"]
+    },
+    "DIRECTIONAL_MODEL": {
+      "primary": ["VOLATILITY_WEIGHTED_CROSS_ENTROPY"],
+      "required_metrics": ["CONDITIONAL_HIT_RATIO"],
+      "forbidden": ["GLOBAL_ACCURACY_MAXIMIZATION", "PNL_OPTIMIZATION", "SHARPE_OPTIMIZATION"]
+    },
+    "MAGNITUDE_MODEL": {
+      "primary": ["PINBALL_QUANTILE_LOSS"],
+      "required_metrics": ["TAIL_CALIBRATION"],
+      "forbidden": ["PNL_OPTIMIZATION", "SHARPE_OPTIMIZATION"]
+    },
+    "PATH_OUTCOME_MODEL": {
+      "primary": ["MULTINOMIAL_CROSS_ENTROPY"],
+      "required_metrics": ["BRIER_SCORE"],
+      "forbidden": ["PNL_OPTIMIZATION", "SHARPE_OPTIMIZATION"]
+    }
+  },
+  "fusion_loss": {
+    "required": true,
+    "composite": {
+      "components": ["NOISE", "VOLATILITY", "REGIME", "DIRECTIONAL"],
+      "weight_ordering_rule": "lambda_epsilon >= lambda_sigma >= lambda_regime >> lambda_alpha"
+    }
+  },
+  "global_training_gates": [
+    {"gate": "VOL_GATE", "condition": "QLIKE_model < QLIKE_baseline"},
+    {"gate": "ALPHA_GATE", "condition": "HR_cond > HR_uncond"},
+    {"gate": "FUSION_GATE", "condition": "VDR > threshold"}
+  ],
+  "explicitly_prohibited_objectives": ["SHARPE", "PNL", "END_TO_END_RETURNS"],
+  "enforcement_statement": "If delta_sharpe > 0 AND delta_qlike <= 0 then reject."
+}

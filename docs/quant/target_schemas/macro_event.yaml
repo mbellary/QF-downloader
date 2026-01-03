@@ -1,0 +1,23 @@
+{
+  "schema_id": "quant-spec.targets.macro_event_returns",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.7",
+  "effective_date": "2026-01-02",
+  "dataset": {"path": "targets/macro_event_returns.csv", "format": "csv"},
+  "fields": [
+    {"name": "event_id", "type": "string", "required": true},
+    {"name": "event_type", "type": "string", "required": true, "constraints": ["in_event_classes"]},
+    {"name": "event_timestamp", "type": "string", "required": true, "constraints": ["iso8601_utc"]},
+    {"name": "pre_event_window_return", "type": "number", "required": true},
+    {"name": "post_event_window_return", "type": "number", "required": true},
+    {"name": "abnormal_return", "type": "number", "required": true},
+    {"name": "normalized_abnormal_return", "type": "number", "required": false},
+    {"name": "peak_reaction_timestamp", "type": "string", "required": false, "constraints": ["iso8601_utc"]},
+    {"name": "reaction_decay_metric", "type": "number", "required": false}
+  ],
+  "constraints": {
+    "event_classes": ["CPI", "NFP", "RATE_DECISION", "GDP", "PMI"],
+    "temporal_ordering": "peak_reaction_timestamp (if present) must be within post-event window"
+  },
+  "references": {"normative_spec": "docs/quant/macro_event.yaml"}
+}

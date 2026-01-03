@@ -1,0 +1,51 @@
+{
+  "schema_id": "quant-spec.q0_3.execution_constraints",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.3",
+  "effective_date": "2026-01-02",
+  "scope": {
+    "applies_to": ["backtests", "paper_trading", "live_execution"],
+    "enforcement": "deny_trade_with_reason"
+  },
+  "instruments": {
+    "allowed_instruments": {"type": "pattern_list", "patterns": ["[A-Z]{6}"]},
+    "forbidden_instruments": {"type": "list", "values": []}
+  },
+  "order_types": {
+    "allowed": ["MARKET", "LIMIT"],
+    "forbidden": ["STOP_LIMIT_IF_UNSUPPORTED"],
+    "note": "Allowed list must be compatible with the broker/exchange used by the environment."
+  },
+  "size_limits": {
+    "max_notional_base_units": {"type": "number", "min": 0},
+    "max_leverage": {"type": "number", "min": 0},
+    "position_concentration_limit": {"type": "number", "min": 0, "max": 1}
+  },
+  "trading_hours": {
+    "timezone": "UTC",
+    "allowed_windows": [
+      {"days": ["MON", "TUE", "WED", "THU", "FRI"], "start": "00:00", "end": "23:59"}
+    ],
+    "weekend_policy": "deny"
+  },
+  "market_quality": {
+    "max_spread_pips": {"type": "number", "min": 0},
+    "liquidity_proxy_required": false
+  },
+  "risk_caps": {
+    "max_open_positions": {"type": "integer", "min": 0},
+    "max_daily_loss_fraction": {"type": "number", "min": 0, "max": 1},
+    "max_exposure_per_instrument_fraction": {"type": "number", "min": 0, "max": 1}
+  },
+  "decision_interface": {
+    "trade_allowed": "boolean",
+    "deny_reasons_enum": [
+      "instrument_not_allowed",
+      "order_type_not_allowed",
+      "size_limit_exceeded",
+      "outside_trading_hours",
+      "spread_too_wide",
+      "risk_cap_exceeded"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+
+version: "3.9"
+services:
+  mt5_app:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    command: ["pytest", "tests/integration", "-m", "docker", "-vv"]
+    volumes:
+      - ../:/app
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+      DOWNLOAD_PATH: /tmp/downloads
+      DB_PATH: /tmp/test.db
+      S3_BUCKET: test-bucket
+    depends_on:
+      - localstack
+
+  localstack:
+    image: localstack/localstack:latest
+    environment:
+      SERVICES: s3

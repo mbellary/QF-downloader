@@ -1,0 +1,33 @@
+{
+  "schema_id": "quant-spec.q0_5.strategy_objectives",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.5",
+  "effective_date": "2026-01-02",
+  "intent": {
+    "style": {"type": "string", "examples": ["intraday", "swing"]},
+    "instrument_scope": {"type": "string", "examples": ["FX majors"]}
+  },
+  "objectives": {
+    "must_include": ["targets", "prohibitions"],
+    "targets": {
+      "risk_adjusted": {
+        "primary_metric": "Sharpe",
+        "target_min": 0
+      },
+      "max_drawdown_fraction": {"type": "number", "min": 0, "max": 1},
+      "turnover_limit": {"type": "number", "min": 0}
+    },
+    "prohibitions": [
+      "maximize_returns_at_expense_of_noise_volatility_regime",
+      "unbounded_leverage",
+      "trading_outside_declared_hours"
+    ]
+  },
+  "alignment": {
+    "must_be_consistent_with": [
+      "docs/quant/system_kpis.yaml",
+      "docs/quant/loss_constraints.yaml",
+      "docs/quant/feature_constraints.json"
+    ]
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "schema_id": "quant-spec.q0_6.alpha_dir",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.6",
+  "effective_date": "2026-01-02",
+  "global_constraints_binding": {
+    "direction_is_downstream": true,
+    "must_not_dominate_objectives": true
+  },
+  "inputs_conceptual_alignment_only": {
+    "return_calculation": "docs/quant/return_calculation.yaml",
+    "feature_constraints_note": "Task text references docs/quant/feature_intent_and_constraints.json; constitutional artifact is docs/quant/feature_constraints.json."
+  },
+  "label_definition": {
+    "label_set": [-1, 0, 1],
+    "horizon": {
+      "allowed_horizon_types": ["intrabar", "session_close", "fixed_bar_lookahead"],
+      "intrabar_examples": ["5m", "15m"],
+      "fixed_bar_examples": [1, 5, 10],
+      "alignment_rule": "Horizon endpoints must align to the timestamping convention in docs/quant/return_calculation.yaml."
+    },
+    "return_over_horizon": {
+      "definition": "Cumulative return r_{t->t+h} computed from the canonical return primitive; aggregation for multi-bar horizons must be explicitly declared."
+    },
+    "threshold": {
+      "type": "volatility_scaled",
+      "definition": "theta(sigma_t) = k * sigma_t",
+      "k": {"type": "number", "min_exclusive": 0},
+      "fixed_thresholds": {
+        "allowed": true,
+        "rule": "If fixed thresholds are used, they must be explicitly declared and justified; zero-threshold is forbidden."
+      }
+    },
+    "decision_rule": {
+      "pos": "label=+1 iff r_{t->t+h} > theta(sigma_t)",
+      "neg": "label=-1 iff r_{t->t+h} < -theta(sigma_t)",
+      "zero": "label=0 otherwise"
+    }
+  },
+  "regime_conditioning": {
+    "enabled": {"type": "boolean"},
+    "allowed": true,
+    "rules": [
+      "If regimes are present, thresholds may vary by regime.",
+      "Class balance statistics must be reported per regime when regime conditioning is enabled."
+    ]
+  },
+  "forbidden_configurations": [
+    "k=0",
+    "using_future_volatility",
+    "using_future_regime_labels",
+    "horizon_not_aligned_to_return_timestamps"
+  ],
+  "derived_artifact_contracts": {
+    "labels_path": "targets/alpha_dir_labels.csv",
+    "metadata_path": "targets/alpha_dir_label_metadata.json",
+    "required_label_fields": ["timestamp", "instrument", "horizon", "direction_label", "volatility_used"],
+    "optional_label_fields": ["regime_id"],
+    "metadata_must_include": [
+      "schema_version",
+      "threshold_parameters",
+      "class_balance_statistics",
+      "regime_conditional_counts",
+      "leakage_validation_flags"
+    ]
+  }
+}

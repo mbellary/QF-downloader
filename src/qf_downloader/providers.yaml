@@ -1,0 +1,176 @@
+version: "2.0.0"
+description: "Multi-pair data provider configuration for MT5 ML/EA system."
+
+###########################################################################
+# SUPPORTED PAIRS
+###########################################################################
+
+supported_pairs:
+  majors:
+    - EURUSD
+    - GBPUSD
+    - USDJPY
+    - AUDUSD
+    - USDCAD
+    - USDCHF
+    - NZDUSD
+
+  minors:
+    - EURJPY
+    - EURGBP
+    - GBPJPY
+
+  metals:
+    - XAUUSD
+    - XAGUSD
+
+###########################################################################
+# PROVIDERS
+###########################################################################
+
+providers:
+
+  #########################################################################
+  # 1) DUKASCOPY (Best free tick/OHLCV)
+  #########################################################################
+  - name: dukascopy
+    type: ohlcv
+    enabled: true
+
+    # All supported FX + metals
+    # supports_pairs: ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD", 
+    #                  "EURJPY", "EURGBP", "GBPJPY", "XAUUSD", "XAGUSD"]
+
+    supports_pairs: ["EURUSD",  "USDJPY"]
+
+    # URL template for tick files (you may change to {hour} if needed)
+    url_template: "https://datafeed.dukascopy.com/datafeed/{pair}/{year}/{month}/{day}/00h_ticks.bi5"
+
+    method: GET
+    frequency: "tick,1m,5m,15m,1H"   # raw resolution available
+
+    # S3 save path structure
+    save_path: "raw/dukascopy/{pair}/{year}/{month}/{day}"
+
+    # Poll once per hour (you may tune)
+    poll_interval: 3600
+
+    # No auth needed
+    auth: {}
+
+    notes: "Primary FX tick/OHLCV source. High-quality free data."
+
+  #########################################################################
+  # 2) TRUEFX (Tick-level)
+  #########################################################################
+  - name: truefx
+    type: tick
+    enabled: false   # Optional
+
+    #supports_pairs: ["EURUSD", "GBPUSD", "USDJPY"]
+    supports_pairs: ["EURUSD", "USDJPY"]
+
+    url_template: "https://www.truefx.com/api/data/{pair}"
+    method: GET
+    frequency: "tick"
+    save_path: "raw/truefx/{pair}/{year}/{month}/{day}"
+
+    auth:
+      type: header_api_key
+      header_env: "TRUEFX_API_KEY"
+      header_name: "x-api-key"
+
+    poll_interval: 3600
+
+    notes: "Tick-level data after signing up. Volume = tick count."
+
+  #########################################################################
+  # 3) ALPHA VANTAGE (Intraday OHLC)
+  #########################################################################
+  - name: alpha_vantage_fx
+    type: ohlcv
+    enabled: false  # optional (rate-limited)
+
+    supports_pairs: ["EURUSD", "GBPUSD", "USDJPY"]
+
+    url_template: "https://www.alphavantage.co/query?function=FX_INTRADAY&from_symbol={base}&to_symbol={quote}&interval=1min&apikey={api_key}"
+
+    method: GET
+    frequency: "1m,5m,15m"
+    save_path: "raw/alphavantage/{pair}/{year}/{month}/{day}"
+
+    params:
+      api_key_env: ALPHA_VANTAGE_API_KEY
+
+    poll_interval: 1800
+
+    notes: "Rate-limited. Backup OHLC source."
+
+  #########################################################################
+  # 4) ECONDB (Economic Calendar + Surprises)
+  #########################################################################
+  - name: econdb
+    type: macro
+    enabled: true
+
+    supports_pairs: ["ALL"]   # Used by all FX pairs
+
+    url_template: "https://www.econdb.com/api/macro/events/?country=US,EU"
+
+    method: GET
+    frequency: "5min"
+    save_path: "raw/econdb/{year}/{month}/{day}"
+
+    poll_interval: 300
+
+    auth: {}
+
+    notes: "Best free economic calendar + actual + forecast + surprise values."
+
+  - name: fmp
+    type: macro
+    enabled: true
+    supports_pairs: [ "ALL" ]
+    url_template: "https://financialmodelingprep.com/stable/economic-calendar?apikey={api_key}"
+    method: GET
+    frequency: "hourly"
+    save_path: "raw/fmp/{year}/{month}/{day}"
+    params:
+      api_key_env: "FMP_API_KEY"
+    poll_interval: 3600
+    notes: "Free tier economic data calendar from FMP."
+
+  #########################################################################
+  # 5) FINANCIAL MODELING PREP (Backup macro)
+  #########################################################################
+  - name: fmp
+    type: macro
+    enabled: false
+
+    supports_pairs: ["ALL"]
+
+    url_template: "https://financialmodelingprep.com/api/v3/economic_calendar?from={start_date}&to={end_date}&apikey={api_key}"
+
+    method: GET
+    frequency: "hourly"
+
+    params:
+      start_date: "{start_date}"
+      end_date: "{end_date}"
+      api_key_env: "FMP_API_KEY"
+
+    save_path: "raw/fmp/{year}/{month}/{day}"
+
+    poll_interval: 3600
+
+    notes: "Good backup for EconDB if rate-limits become an issue."
+
+###########################################################################
+# MT5 LIVE FEED (Real-Time Broker Data)
+###########################################################################
+
+mt5_live:
+  enabled: true
+  type: tick
+  supports_pairs: "ALL"
+  description: "Used only for real-time inference, not historical."

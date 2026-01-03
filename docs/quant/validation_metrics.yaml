@@ -1,0 +1,40 @@
+{
+  "schema_id": "quant-spec.q0_4.validation_metrics",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.4",
+  "effective_date": "2026-01-02",
+  "metric_requirements": {
+    "each_metric_must_define": ["definition", "measurement_window", "optimization_direction", "failure_modes"],
+    "regime_aware_required": true
+  },
+  "metric_hierarchy": {
+    "priority_order": ["noise", "volatility", "regime", "conditional_alpha", "returns"],
+    "note": "This ordering must be compatible with docs/quant/system_kpis.yaml gating."
+  },
+  "metrics": [
+    {
+      "name": "QLIKE",
+      "category": "volatility",
+      "optimization_direction": "minimize",
+      "measurement_window": "rolling",
+      "definition": "QLIKE(\u03c3_hat^2, r^2) = log(\u03c3_hat^2) + (r^2 / \u03c3_hat^2)",
+      "failure_modes": ["variance_collapse", "numerical_instability_if_sigma_hat_near_zero"]
+    },
+    {
+      "name": "NER",
+      "category": "noise",
+      "optimization_direction": "maximize",
+      "measurement_window": "rolling",
+      "definition": "Noise Explainability Ratio as defined in system KPIs.",
+      "failure_modes": ["metric_gaming_via_scaling", "misaligned_variance_decomposition"]
+    },
+    {
+      "name": "Sharpe",
+      "category": "returns",
+      "optimization_direction": "maximize",
+      "measurement_window": "rolling",
+      "definition": "mean(return)/std(return) over the window",
+      "failure_modes": ["unstable_under_regime_shifts", "dominated_by_tail_events"]
+    }
+  ]
+}

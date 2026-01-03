@@ -1,0 +1,86 @@
+{
+  "schema_id": "quant-spec.q0_11.system_kpis",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.11",
+  "effective_date": "2026-01-02",
+  "guiding_principle": {
+    "returns_are_outcome": true,
+    "capabilities_are_primary": ["noise_separation", "volatility_accuracy", "regime_stability"],
+    "rejection_rule": "Return improvements without capability improvements are invalid."
+  },
+  "metric_hierarchy": ["NOISE", "VOLATILITY", "REGIME", "CONDITIONAL_ALPHA", "RETURNS"],
+  "kpis": [
+    {
+      "id": "NER",
+      "category": "NOISE",
+      "name": "Noise Explainability Ratio",
+      "definition": "NER = (Var(epsilon_hat) + Var(sigma_hat)) / Var(r)",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1},
+      "failure_modes": ["variance_decomposition_mismatch", "scaling_gaming"]
+    },
+    {
+      "id": "NG",
+      "category": "NOISE",
+      "name": "Noise Gating Effectiveness",
+      "definition": "NG = 1 - Trades_high_noise / Trades_total_candidates",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1},
+      "failure_modes": ["trivial_gate_blocks_all_trades"]
+    },
+    {
+      "id": "JCR",
+      "category": "NOISE",
+      "name": "Jump Containment Ratio",
+      "definition": "JCR = Jumps_filtered_out / Total_detected_jumps",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1}
+    },
+    {
+      "id": "QLIKE",
+      "category": "VOLATILITY",
+      "name": "Volatility Forecast Accuracy (QLIKE)",
+      "definition": "QLIKE(sigma_hat^2, r^2) = log(sigma_hat^2) + r^2 / sigma_hat^2",
+      "optimization_direction": "minimize",
+      "valid_range": {"min": 0, "max": null},
+      "baseline_requirement": "must_beat_naive_baseline"
+    },
+    {
+      "id": "VDR",
+      "category": "VOLATILITY",
+      "name": "Volatility Dominance Ratio",
+      "definition": "VDR = Decisions_gated_by_sigma / Total_decisions",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1}
+    },
+    {
+      "id": "REGIME_STABILITY",
+      "category": "REGIME",
+      "name": "Regime Stability",
+      "definition": "A composite of persistence, churn, and transition-matrix stability (must be defined by implementation using the threshold schema).",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1}
+    },
+    {
+      "id": "HR_COND",
+      "category": "CONDITIONAL_ALPHA",
+      "name": "Conditional Hit Ratio",
+      "definition": "HR_cond = P(correct | low_noise AND favorable_sigma AND allowed_regime)",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1}
+    },
+    {
+      "id": "SHARPE",
+      "category": "RETURNS",
+      "name": "Sharpe (Return KPI)",
+      "definition": "Sharpe = mean(returns) / std(returns) over window",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": null, "max": null},
+      "gating_rule": "Only evaluated after NOISE/VOLATILITY/REGIME/CONDITIONAL_ALPHA gates pass."
+    }
+  ],
+  "phase_gating_contract": {
+    "phases": ["PHASE_0", "PHASE_1", "PHASE_2", "PHASE_3", "PHASE_4", "PHASE_5"],
+    "rule": "A phase may progress only if required KPI gates for that phase pass, as defined in docs/quant/kpi_thresholds.yaml."
+  }
+}

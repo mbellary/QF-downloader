@@ -1,0 +1,25 @@
+{
+  "schema_id": "quant-spec.targets.alpha_dir_label_metadata",
+  "schema_version": "1.0.0",
+  "effective_date": "2026-01-02",
+  "labels_dataset": "targets/alpha_dir_labels.csv",
+  "threshold_parameters": {
+    "threshold_type": "volatility_scaled",
+    "k": {"type": "number", "min_exclusive": 0},
+    "fixed_threshold": {"type": ["number", "null"], "min_exclusive": 0}
+  },
+  "class_balance_statistics": {
+    "overall": {"pos": "number", "zero": "number", "neg": "number"},
+    "per_regime_optional": true
+  },
+  "regime_conditional_counts": {"type": "object", "additionalProperties": {"pos": "number", "zero": "number", "neg": "number"}},
+  "leakage_validation_flags": {
+    "no_future_volatility": true,
+    "no_future_regime": true,
+    "horizon_alignment_valid": true
+  },
+  "provenance": {
+    "data_provider": "string",
+    "data_version": "string"
+  }
+}

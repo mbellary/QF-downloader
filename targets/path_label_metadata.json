@@ -1,0 +1,30 @@
+{
+  "schema_id": "quant-spec.targets.path_label_metadata",
+  "schema_version": "1.0.0",
+  "effective_date": "2026-01-02",
+  "dataset": "targets/path_outcomes.parquet",
+  "horizon_definition": {
+    "type": "string",
+    "required": true
+  },
+  "barrier_multipliers": {
+    "k_sl": {"type": "number", "min_exclusive": 0},
+    "k_tp": {"type": "number", "min_exclusive": 0}
+  },
+  "volatility_source": {
+    "type": "string",
+    "required": true
+  },
+  "tie_break_policy": {
+    "type": "string",
+    "enum": ["conservative_sl_first", "optimistic_tp_first", "unknown_order_emit_ambiguous"],
+    "required": true
+  },
+  "execution_compatibility_flags": {
+    "compatible_with_execution_constraints": true
+  },
+  "provenance": {
+    "data_provider": "string",
+    "data_version": "string"
+  }
+}

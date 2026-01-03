@@ -1,0 +1,38 @@
+FROM python:3.13-slim AS dev
+
+WORKDIR /qf-downloader
+
+# ----------------------------------------------------------------------------
+# Install system deps once (cached layer)
+# ----------------------------------------------------------------------------
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc g++ build-essential curl git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv package manager
+RUN pip install --no-cache-dir uv
+
+# Copy pyproject.toml (and optional lock file)
+COPY pyproject.toml uv.lock* README.md ./
+
+# ----------------------------------------------------------------------------
+# Install dependencies into SYSTEM PYTHON
+# `uv export` → produces requirements.txt
+# `uv pip install --system -r requirements.txt` → installs to system site-packages
+# ----------------------------------------------------------------------------
+RUN uv export --format requirements-txt > requirements.txt && \
+    uv pip install --system -r requirements.txt
+
+
+# Copy project source
+COPY src ./src
+
+# Install the package itself (creates "worker" CLI script)
+#RUN uv pip install --system --editable .
+
+# Default entrypoint defined in pyproject.toml: [project.scripts]
+ENTRYPOINT ["worker"]
+
+# Add source to module path for src-format layout
+ENV PYTHONPATH="/qf-downloader/src:${PYTHONPATH}"
+ENV UV_PROJECT_ENVIRONMENT="/qf-downloader/.venv"

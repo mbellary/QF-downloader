@@ -1,0 +1,29 @@
+{
+  "schema_id": "quant-spec.targets.microstructure_targets",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.8",
+  "effective_date": "2026-01-02",
+  "dataset": {"path": "targets/microstructure_targets.parquet", "format": "parquet"},
+  "fields": [
+    {"name": "timestamp", "type": "string", "required": true, "constraints": ["iso8601_utc"]},
+    {"name": "instrument", "type": "string", "required": true, "constraints": ["fx_pair_6chars"]},
+    {"name": "microstructure_horizon", "type": "integer", "required": true, "constraints": ["seconds_lte_300"]},
+    {"name": "aggressive_buy_volume", "type": "number", "required": true, "constraints": ["non_negative"]},
+    {"name": "aggressive_sell_volume", "type": "number", "required": true, "constraints": ["non_negative"]},
+    {"name": "order_flow_imbalance", "type": "number", "required": true},
+    {"name": "micro_target_class", "type": "string", "required": true, "constraints": ["in_target_classes"]},
+    {"name": "spread_snapshot", "type": "number", "required": true, "constraints": ["non_negative"]},
+    {"name": "liquidity_state_flag", "type": "string", "required": true}
+  ],
+  "constraints": {
+    "target_classes": [
+      "ORDER_FLOW_IMBALANCE",
+      "LIQUIDITY_SHOCK",
+      "SPREAD_EXPANSION",
+      "SHORT_HORIZON_IMPACT"
+    ],
+    "causality": "No future ticks permitted.",
+    "horizon": "microstructure_horizon must be <= 300 seconds"
+  },
+  "references": {"normative_spec": "docs/quant/microstructure.yaml"}
+}

@@ -1,0 +1,89 @@
+{
+  "schema_id": "quant-spec.q0_1.return_calculation",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.1",
+  "effective_date": "2026-01-02",
+  "principle_binding": {
+    "direction_is_downstream": true,
+    "volatility_noise_regime_primary": true
+  },
+  "time": {
+    "timezone": "UTC",
+    "timestamp_unit": "ISO-8601",
+    "bar_alignment_rule": "A return at timestamp t is computed from prices sampled at bar_close times t_prev and t, where t_prev is the immediately preceding bar_close for the same instrument and calendar."
+  },
+  "price": {
+    "inputs": ["bid", "ask"],
+    "mid_definition": "(bid + ask) / 2",
+    "return_price_series_default": "mid",
+    "execution_price_series": {
+      "long_entry": "ask",
+      "long_exit": "bid",
+      "short_entry": "bid",
+      "short_exit": "ask"
+    }
+  },
+  "return": {
+    "primitive": "log_return",
+    "log_return_definition": "ln(P_t / P_{t-1})",
+    "simple_return_definition": "(P_t / P_{t-1}) - 1",
+    "permitted_return_types": ["log_return", "simple_return"],
+    "default_type": "log_return",
+    "missing_data_policy": {
+      "on_gap": "emit_null_and_flag",
+      "gap_threshold_seconds": 0,
+      "required_flags": ["missing_prev", "missing_curr", "gap_detected"]
+    }
+  },
+  "session_boundaries": {
+    "required": true,
+    "session_boundary_policy": "explicit",
+    "allowed_policies": ["explicit"],
+    "definition": "Session boundaries are defined by an explicit calendar object; if daily sessions are required, the boundary timestamp must be specified unambiguously in UTC.",
+    "calendar": {
+      "type": "trading_calendar",
+      "weekend_policy": "no_trading_sessions",
+      "dst_handling": "timestamps_in_utc_avoid_dst_ambiguity"
+    }
+  },
+  "rollover_and_financing": {
+    "return_series_is_price_only": true,
+    "carry_series_optional": true,
+    "rule": "Spot-price returns MUST be computed from prices only. If carry/rollover is modeled, it MUST be a separate additive P&L component with its own documented source and timestamp alignment."
+  },
+  "fx_conventions": {
+    "pip": {
+      "default_pip_size": 0.0001,
+      "jpy_pip_size": 0.01,
+      "pipette_factor": 10,
+      "rule": "If quote currency is JPY, pip_size=0.01 else pip_size=0.0001. Pipette size is pip_size/10."
+    },
+    "lot_and_notional": {
+      "standard_lot_units": 100000,
+      "mini_lot_units": 10000,
+      "micro_lot_units": 1000
+    },
+    "pip_value": {
+      "definition_quote_ccy": "pip_value_quote = notional_units * pip_size",
+      "conversion_rule": "If account currency != quote currency, convert pip_value_quote using a contemporaneous FX rate specified by the implementation; the conversion rate source must be documented." 
+    }
+  },
+  "acceptance": {
+    "unambiguous": true,
+    "required_fields_present": [
+      "time.timezone",
+      "price.inputs",
+      "return.primitive",
+      "session_boundaries.calendar",
+      "fx_conventions.pip"
+    ]
+  },
+  "references": {
+    "global_constraints": [
+      "docs/quant/system_kpis.yaml",
+      "docs/quant/loss_constraints.yaml",
+      "docs/quant/feature_constraints.json",
+      "docs/quant/strategy_objectives.yaml"
+    ]
+  }
+}

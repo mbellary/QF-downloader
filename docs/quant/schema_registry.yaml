@@ -1,0 +1,35 @@
+{
+  "schema_id": "quant-spec.registry",
+  "schema_version": "1.0.0",
+  "effective_date": "2026-01-02",
+  "authority": {
+    "machine_readable_is_authoritative": true,
+    "markdown_is_explanatory_only": true
+  },
+  "schemas": [
+    {"task_id": "Q0.1", "path": "docs/quant/return_calculation.yaml", "version": "1.0.0"},
+    {"task_id": "Q0.2", "path": "docs/quant/backtest_rules.yaml", "version": "1.0.0"},
+    {"task_id": "Q0.3", "path": "docs/quant/execution_constraints.yaml", "version": "1.0.0"},
+    {"task_id": "Q0.4", "path": "docs/quant/validation_metrics.yaml", "version": "1.0.0"},
+    {"task_id": "Q0.5", "path": "docs/quant/strategy_objectives.yaml", "version": "1.0.0"},
+
+    {"task_id": "Q0.6", "path": "docs/quant/alpha_dir.yaml", "version": "1.0.0"},
+    {"task_id": "Q0.6", "path": "docs/quant/target_schemas/alpha_dir.yaml", "version": "1.0.0"},
+
+    {"task_id": "Q0.7", "path": "docs/quant/macro_event.yaml", "version": "1.0.0"},
+    {"task_id": "Q0.7", "path": "docs/quant/target_schemas/macro_event.yaml", "version": "1.0.0"},
+
+    {"task_id": "Q0.8", "path": "docs/quant/microstructure.yaml", "version": "1.0.0"},
+    {"task_id": "Q0.8", "path": "docs/quant/target_schemas/microstructure.yaml", "version": "1.0.0"},
+
+    {"task_id": "Q0.9", "path": "docs/quant/path_outcomes.yaml", "version": "1.0.0"},
+    {"task_id": "Q0.9", "path": "docs/quant/target_schemas/path_outcomes.yaml", "version": "1.0.0"},
+
+    {"task_id": "Q0.10", "path": "docs/quant/feature_constraints.json", "version": "1.0.0"},
+    {"task_id": "Q0.11", "path": "docs/quant/system_kpis.yaml", "version": "1.0.0"},
+    {"task_id": "Q0.11", "path": "docs/quant/kpi_thresholds.yaml", "version": "1.0.0"},
+    {"task_id": "Q0.12", "path": "docs/quant/loss_constraints.yaml", "version": "1.0.0"},
+
+    {"task_id": "Q0.G", "path": "docs/quant/global_system_constraints.yaml", "version": "1.0.0"}
+  ]
+}

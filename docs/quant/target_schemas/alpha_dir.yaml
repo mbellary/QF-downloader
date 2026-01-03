@@ -1,0 +1,26 @@
+{
+  "schema_id": "quant-spec.targets.alpha_dir_labels",
+  "schema_version": "1.0.0",
+  "task_id": "Q0.6",
+  "effective_date": "2026-01-02",
+  "dataset": {
+    "path": "targets/alpha_dir_labels.csv",
+    "format": "csv"
+  },
+  "fields": [
+    {"name": "timestamp", "type": "string", "required": true, "constraints": ["iso8601_utc"]},
+    {"name": "instrument", "type": "string", "required": true, "constraints": ["fx_pair_6chars"]},
+    {"name": "horizon", "type": "string", "required": true},
+    {"name": "direction_label", "type": "integer", "required": true, "constraints": ["in_-1_0_1"]},
+    {"name": "volatility_used", "type": "number", "required": true, "constraints": ["non_negative"]},
+    {"name": "regime_id", "type": "string", "required": false}
+  ],
+  "causality": {
+    "no_future_information": true,
+    "rule": "direction_label at (timestamp, horizon) must be reproducible from past/current prices and the declared horizon only."
+  },
+  "references": {
+    "normative_spec": "docs/quant/alpha_dir.yaml",
+    "return_calculation": "docs/quant/return_calculation.yaml"
+  }
+}

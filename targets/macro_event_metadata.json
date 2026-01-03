@@ -1,0 +1,29 @@
+{
+  "schema_id": "quant-spec.targets.macro_event_metadata",
+  "schema_version": "1.0.0",
+  "effective_date": "2026-01-02",
+  "dataset": "targets/macro_event_returns.csv",
+  "event_class_definitions": {
+    "type": "object",
+    "required": true
+  },
+  "window_sizes_by_class": {
+    "type": "object",
+    "required": true
+  },
+  "baseline_method": {
+    "type": "string",
+    "enum": ["pre_event_mean_return", "matched_non_event_window", "model_based_expected_return"],
+    "required": true
+  },
+  "volatility_source": {"type": ["string", "null"], "required": true},
+  "overlap_resolution_policy": {
+    "type": "string",
+    "enum": ["exclude_overlaps", "priority_by_class", "merge_if_same_class"],
+    "required": true
+  },
+  "provenance": {
+    "data_provider": "string",
+    "data_version": "string"
+  }
+}

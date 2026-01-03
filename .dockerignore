@@ -1,0 +1,48 @@
+# Python
+src/qf_downloader/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+
+# IDE
+.vscode/
+.idea/
+
+# Ignore Python virtual environments
+.venv/
+venv/
+env/
+
+# Local directories
+local/
+data/
+output/
+results/
+logs/
+mlruns/
+mlartifacts/
+local3/
+
+# Docker
+Dockerfile.prod
+.dockerignore
+
+# Environment / venv
+.env
+src/qf_downloader/.env.dev
+src/qf_downloader/.env.prod
+*.env
+
+# Git
+.git/
+.gitignore
+.github/
+
+# Cache
+**/__pycache__/
+**/*.log
+
+# OS files
+.DS_Store
+Thumbs.db
