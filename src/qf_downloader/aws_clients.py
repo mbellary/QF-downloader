@@ -65,6 +65,7 @@ def get_boto3_client(service):
             return boto3.client(service, region_name=region)
 
 
+
 class AwsClientManager:
     """Lightweight manager used by integration tests to upload files to S3.
 

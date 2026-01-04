@@ -30,6 +30,9 @@ This plan is scoped to integration behavior. Unit tests and offline behavior are
 - [x] (2026-01-04 00:00Z) Implemented LocalStack-backed integration tests: `tests/integration/test_localstack_boundaries.py` with fixtures in `tests/integration/conftest.py`.
 - [ ] Define a minimal but real integration scenario: write to S3 and index to DynamoDB using LocalStack, then query back (S3 implemented; DynamoDB roundtrip implemented; S3Indexer path pending fix).
 - [ ] Update Docker Compose configuration so LocalStack provides the services the code uses (S3 and DynamoDB) and so container-to-container networking works.
+- [ ] Define a minimal but real integration scenario: write to S3 and index to DynamoDB using LocalStack, then query back.
+- [ ] Update Docker Compose configuration so LocalStack provides the services the code uses (S3 and DynamoDB) and so container-to-container networking works.
+- [ ] Implement integration tests under `tests/integration/` that pass under both execution modes.
 - [ ] Update CI to run integration tests in Docker consistently with local workflows.
 
 ## Surprises & Discoveries
