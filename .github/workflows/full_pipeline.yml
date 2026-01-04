@@ -63,7 +63,9 @@ jobs:
         with:
           python-version: "3.14"
       - uses: astral-sh/setup-uv@v1
-      - uses: astral-sh/setup-uv@v1
+      - name: Create virtual environment for uv
+        run: |
+          uv venv
       - name: Install dev dependencies for unit job
         run: |
           uv pip install -e ".[dev]"
