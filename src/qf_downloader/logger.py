@@ -1,7 +1,7 @@
 import logging
 import sys
-import json
 from logging import Logger
+
 
 def get_logger(name: str = "sqs_worker") -> Logger:
     # Simple structured JSON logger. Replace with structlog if you prefer.

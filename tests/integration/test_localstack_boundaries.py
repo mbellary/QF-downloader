@@ -61,10 +61,6 @@ def test_dynamodb_roundtrip_via_boto3_client(localstack_resources) -> None:
 
 
 @pytest.mark.docker
-@pytest.mark.xfail(
-    reason="S3Indexer currently treats an aioboto3 client as a resource (Table()), which is incompatible.",
-    strict=False,
-)
 def test_s3indexer_index_and_query(localstack_resources) -> None:
     # This is the intended integration contract once S3Indexer is corrected.
     from qf_downloader.s3_indexer import S3Indexer

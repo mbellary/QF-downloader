@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 
 import boto3
 import pytest
+from botocore.config import Config
 
 
 def _default_localstack_url() -> str:
@@ -20,21 +21,23 @@ def _endpoint_hostport(url: str) -> str:
 
 
 @pytest.fixture(scope="session")
-def localstack_env(monkeypatch):
+def localstack_env():
     endpoint_url = _default_localstack_url()
 
-    monkeypatch.setenv("APP_ENV", "localstack")
-    monkeypatch.setenv("LOCALSTACK_URL", endpoint_url)
-    monkeypatch.setenv("AWS_ACCESS_KEY_ID", os.environ.get("AWS_ACCESS_KEY_ID", "test"))
-    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", os.environ.get("AWS_SECRET_ACCESS_KEY", "test"))
-    monkeypatch.setenv("AWS_REGION", os.environ.get("AWS_REGION", "us-east-1"))
+    mp = pytest.MonkeyPatch()
+
+    mp.setenv("APP_ENV", "localstack")
+    mp.setenv("LOCALSTACK_URL", endpoint_url)
+    mp.setenv("AWS_ACCESS_KEY_ID", os.environ.get("AWS_ACCESS_KEY_ID", "test"))
+    mp.setenv("AWS_SECRET_ACCESS_KEY", os.environ.get("AWS_SECRET_ACCESS_KEY", "test"))
+    mp.setenv("AWS_REGION", os.environ.get("AWS_REGION", "us-east-1"))
 
     # Use unique resources per test session to avoid collisions.
     bucket = os.environ.get("S3_BUCKET") or f"qf-test-{uuid.uuid4().hex[:12]}"
     table = os.environ.get("RAW_FILE_INDEX_TABLE") or f"raw-file-index-{uuid.uuid4().hex[:12]}"
 
-    monkeypatch.setenv("S3_BUCKET", bucket)
-    monkeypatch.setenv("RAW_FILE_INDEX_TABLE", table)
+    mp.setenv("S3_BUCKET", bucket)
+    mp.setenv("RAW_FILE_INDEX_TABLE", table)
 
     # Reload config-dependent modules so they pick up the env vars set above.
     import qf_downloader.aws_clients as aws_clients
@@ -49,26 +52,33 @@ def localstack_env(monkeypatch):
 
     # Skip if LocalStack is not reachable.
     try:
+        client_config = Config(connect_timeout=1, read_timeout=2, retries={"max_attempts": 1})
         s3 = boto3.client(
             "s3",
             region_name=os.environ["AWS_REGION"],
             aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
             aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
             endpoint_url=endpoint_url,
+            config=client_config,
         )
         s3.list_buckets()
     except Exception as exc:
+        mp.undo()
         pytest.skip(
             "LocalStack is not reachable at "
             f"{endpoint_url} (hostport={_endpoint_hostport(endpoint_url)}): {exc}"
         )
 
-    return {
+    payload = {
         "endpoint_url": endpoint_url,
         "bucket": bucket,
         "table": table,
         "region": os.environ["AWS_REGION"],
     }
+
+    yield payload
+
+    mp.undo()
 
 
 @pytest.fixture(scope="session")
@@ -78,12 +88,14 @@ def localstack_resources(localstack_env):
     bucket = localstack_env["bucket"]
     table = localstack_env["table"]
 
+    client_config = Config(connect_timeout=1, read_timeout=5, retries={"max_attempts": 1})
     s3 = boto3.client(
         "s3",
         region_name=region,
         aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
         aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
         endpoint_url=endpoint_url,
+        config=client_config,
     )
     dynamodb = boto3.client(
         "dynamodb",
@@ -91,6 +103,7 @@ def localstack_resources(localstack_env):
         aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
         aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
         endpoint_url=endpoint_url,
+        config=client_config,
     )
 
     # S3 bucket

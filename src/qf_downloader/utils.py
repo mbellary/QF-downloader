@@ -1,7 +1,9 @@
 import hashlib
-from pathlib import Path
-import aiofiles
 import mimetypes
+from pathlib import Path
+
+import aiofiles
+
 
 async def file_checksum(path: str, algo: str = "sha256") -> str:
     h = hashlib.new(algo)
@@ -13,8 +15,10 @@ async def file_checksum(path: str, algo: str = "sha256") -> str:
             h.update(chunk)
     return h.hexdigest()
 
+
 def ensure_dir(path: str):
     Path(path).mkdir(parents=True, exist_ok=True)
+
 
 def guess_content_type(url: str, filename: str = None):
     if filename:
