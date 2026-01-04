@@ -203,6 +203,16 @@ Acceptance is met when all of the following are true:
 - Coverage output `coverage.xml` is produced (either via `pytest.ini` defaults or explicit flags) and includes `src/qf_downloader/` modules.
 - Placeholder tests under `tests/unit/` are removed or replaced with behavior-validating tests.
 
+The unit test suite that must pass includes at least:
+
+- `tests/unit/test_utils.py`
+- `tests/unit/test_db_download_db.py`
+- `tests/unit/test_provider_downloader.py`
+- `tests/test_smoke_import.py`
+- `tests/test_cli_help.py`
+
+Note: In Tester mode, tests are implemented but not executed by this agent. Execution validation is expected to be performed by the Developer.
+
 ## Idempotence and Recovery
 
 This plan is designed to be safe to re-run:
