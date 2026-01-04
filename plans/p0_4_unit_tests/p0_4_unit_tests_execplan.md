@@ -12,15 +12,20 @@ This plan intentionally treats “unit tests” as tests that isolate a single m
 
 ## Progress
 
-- [x] (2026-01-04 00:00Z) Verified we are on a non-main feature branch: `task/p0_4_fix_ci_python`.
+- [x] (2026-01-04 00:00Z) Verified we are on a non-main task branch: `task/p0_4_unit_tests`.
 - [x] (2026-01-04 00:00Z) Bootstrapped local dev environment with `uv pip install -e ".[dev]"`.
-- [x] (2026-01-04 00:00Z) Ran environment verification commands successfully: `uv run ruff format .`, `uv run ruff check .`, `uv run pytest -vv` (4 tests passed; `coverage.xml` generated).
+- [x] (2026-01-04 00:00Z) Ran environment verification commands successfully: `uv run ruff format .`, `uv run ruff check .`, `uv run python -m pytest -q` (11 tests passed; `coverage.xml` generated).
 - [x] (2026-01-04 00:00Z) Created GitHub tracking issue: https://github.com/mbellary/QF-downloader/issues/7
 - [x] (2026-01-04 00:00Z) Created design document: `plans/p0_4_unit_tests/p0_4_unit_tests_design.md`
 - [x] (2026-01-04 00:00Z) Implemented unit tests: `tests/unit/test_utils.py`, `tests/unit/test_db_download_db.py`, `tests/unit/test_provider_downloader.py`.
 - [x] (2026-01-04 00:00Z) Added smoke tests: `tests/test_smoke_import.py`, `tests/test_cli_help.py`.
-- [ ] Ensure unit tests run without Docker and without network access (no HTTP calls, no LocalStack, no AWS) (implemented; pending execution validation).
+- [x] (2026-01-04 00:00Z) Ensure unit tests run without Docker and without network access (no HTTP calls, no LocalStack, no AWS).
 - [ ] Update documentation references that still mention other packages (math-lib / greetings-lib) so the unit test workflow is unambiguous.
+
+Artifacts:
+
+- Branch: `task/p0_4_unit_tests`
+- PR: https://github.com/mbellary/QF-downloader/pull/11
 
 ## Surprises & Discoveries
 
