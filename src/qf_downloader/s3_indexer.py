@@ -1,8 +1,6 @@
-import aioboto3
-from .config import AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
-from .logger import get_logger
 from .aws_clients import get_aboto3_client
 from .config import RAW_FILE_INDEX_TABLE
+from .logger import get_logger
 
 logger = get_logger("downloader.s3_indexer")
 
@@ -29,7 +27,7 @@ class S3Indexer:
                 "pair": pair,
                 "date": date,
                 "s3_key": s3_key,
-                "state": "PENDING"
+                "state": "PENDING",
             }
             await table.put_item(Item=item)
 
@@ -53,7 +51,7 @@ class S3Indexer:
             resp = await table.query(
                 KeyConditionExpression="pk = :pk AND sk BETWEEN :start AND :end",
                 ExpressionAttributeValues={":pk": pk, ":start": start_sk, ":end": end_sk},
-                Limit=1000
+                Limit=1000,
             )
             items = resp.get("Items", [])
             while items:
@@ -65,7 +63,7 @@ class S3Indexer:
                         KeyConditionExpression="pk = :pk AND sk BETWEEN :start AND :end",
                         ExpressionAttributeValues={":pk": pk, ":start": start_sk, ":end": end_sk},
                         ExclusiveStartKey=resp["LastEvaluatedKey"],
-                        Limit=1000
+                        Limit=1000,
                     )
                     items = resp.get("Items", [])
                 else:

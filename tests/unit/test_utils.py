@@ -15,9 +15,18 @@ def test_ensure_dir_idempotent(tmp_path) -> None:
 
 
 def test_guess_content_type_prefers_filename() -> None:
-    assert guess_content_type(url="https://example.invalid/anything", filename="file.csv") == "text/csv"
-    assert guess_content_type(url="https://example.invalid/anything", filename="file.pdf") == "application/pdf"
-    assert guess_content_type(url="https://example.invalid/anything", filename="file.html") == "text/html"
+    assert (
+        guess_content_type(url="https://example.invalid/anything", filename="file.csv")
+        == "text/csv"
+    )
+    assert (
+        guess_content_type(url="https://example.invalid/anything", filename="file.pdf")
+        == "application/pdf"
+    )
+    assert (
+        guess_content_type(url="https://example.invalid/anything", filename="file.html")
+        == "text/html"
+    )
 
 
 def test_guess_content_type_falls_back_to_url_extension() -> None:
