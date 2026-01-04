@@ -1,7 +1,6 @@
 import os
 import aioboto3
 import boto3
-
 from qf_downloader.config import (
     APP_ENV,
     AWS_ACCESS_KEY_ID,
