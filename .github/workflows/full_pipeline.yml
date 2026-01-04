@@ -76,7 +76,7 @@ jobs:
       - name: Verify pytest available
         run: |
           uv run pip show pytest || uv run pip list
-      - run: uv run pytest tests/unit -q
+      - run: uv run pytest tests -q
 
   integration-docker:
     runs-on: ubuntu-latest
