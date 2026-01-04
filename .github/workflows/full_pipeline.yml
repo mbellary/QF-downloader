@@ -66,6 +66,7 @@ jobs:
       - name: Create virtual environment for uv
         run: |
           uv venv
+          source .venv/bin/activate
       - name: Install dev dependencies for unit job
         run: |
           uv pip install -e ".[dev]"
