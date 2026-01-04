@@ -24,9 +24,10 @@ HEADERS = {
 
 
 async def fetch_file(url: str, out_path: str, disable_ssl: bool = False):
+    connector = aiohttp.TCPConnector(ssl=False) if disable_ssl else aiohttp.TCPConnector()
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(connector=connector) as session:
         print(f"→ Fetching: {url}")
         async with session.request(
             "GET", url, headers=HEADERS, timeout=60, params={}, auth=None

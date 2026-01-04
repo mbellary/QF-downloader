@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from .aws_clients import get_aboto3_client
 from .config import RAW_FILE_INDEX_TABLE
 from .logger import get_logger
@@ -29,18 +27,17 @@ class S3Indexer:
         sk = f"{date}#{s3_key}"
 
         async with await get_aboto3_client("dynamodb") as dynamo:
-            await dynamo.put_item(
-                TableName=self.table_name,
-                Item={
-                    "pk": self._av_s(pk),
-                    "sk": self._av_s(sk),
-                    "provider": self._av_s(provider),
-                    "pair": self._av_s(pair),
-                    "date": self._av_s(date),
-                    "s3_key": self._av_s(s3_key),
-                    "state": self._av_s("PENDING"),
-                },
-            )
+            table = await dynamo.Table(self.table)
+            item = {
+                "pk": pk,
+                "sk": sk,
+                "provider": provider,
+                "pair": pair,
+                "date": date,
+                "s3_key": s3_key,
+                "state": "PENDING",
+            }
+            await table.put_item(Item=item)
 
         logger.info(f"Indexed raw file: pk={pk}, sk={sk}")
 
@@ -69,15 +66,26 @@ class S3Indexer:
                 "Limit": 1000,
             }
 
-            resp = await dynamo.query(**query_kwargs)
-            while True:
-                items = resp.get("Items", [])
-                for item in items:
-                    if "s3_key" in item:
-                        results.append(self._unwrap_s(item["s3_key"]))
-
-                lek = resp.get("LastEvaluatedKey")
-                if not lek:
+            # DynamoDB query paginated
+            resp = await table.query(
+                KeyConditionExpression="pk = :pk AND sk BETWEEN :start AND :end",
+                ExpressionAttributeValues={":pk": pk, ":start": start_sk, ":end": end_sk},
+                Limit=1000,
+            )
+            items = resp.get("Items", [])
+            while items:
+                for it in items:
+                    results.append(it["s3_key"])
+                # handle pagination
+                if "LastEvaluatedKey" in resp:
+                    resp = await table.query(
+                        KeyConditionExpression="pk = :pk AND sk BETWEEN :start AND :end",
+                        ExpressionAttributeValues={":pk": pk, ":start": start_sk, ":end": end_sk},
+                        ExclusiveStartKey=resp["LastEvaluatedKey"],
+                        Limit=1000,
+                    )
+                    items = resp.get("Items", [])
+                else:
                     break
 
                 resp = await dynamo.query(**(query_kwargs | {"ExclusiveStartKey": lek}))

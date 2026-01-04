@@ -25,6 +25,7 @@ app = typer.Typer(help="MT5 Multi-Pair Downloader CLI")
 
 # Backwards-compatible CLI object expected by tests. Provide a lightweight
 # click `Command` that responds to `--help`. Runtime can still use `app`.
+
 cli = click.Command(name="qf_downloader")
 
 

@@ -1,6 +1,8 @@
 import os
+
 import aioboto3
 import boto3
+
 from qf_downloader.config import (
     APP_ENV,
     AWS_ACCESS_KEY_ID,
@@ -36,10 +38,10 @@ def get_boto3_client(service):
         logger.info(f"Initializing client {service} locally")
         return boto3.client(
             service,
-            region_name=region,
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-            endpoint_url=localstack_url,
+            region_name=AWS_REGION,
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            endpoint_url=LOCALSTACK_URL,
         )
     else:
         # Production: use IAM Role if available
@@ -61,6 +63,7 @@ def get_boto3_client(service):
             # No profile → IAM Role will be used (via metadata service)
             logger.info(f"Initializing client {service} in production using IAM Role")
             return boto3.client(service, region_name=region)
+
 
 
 class AwsClientManager:
@@ -102,10 +105,10 @@ async def get_aboto3_client(service):
         session = aioboto3.Session(region_name=region)
         return session.client(
             service,
-            region_name=region,
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-            endpoint_url=localstack_url,
+            region_name=AWS_REGION,
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            endpoint_url=LOCALSTACK_URL,
         )
     else:
         # Production: use IAM Role if available
@@ -119,10 +122,9 @@ async def get_aboto3_client(service):
             logger.info(
                 f"Initializing client {service} in production using AWS_PROFILE {aws_profile}"
             )
-            profile_session = aioboto3.Session(region_name=region, profile_name=aws_profile)
+            profile_session = aioboto3.Session(region_name=AWS_REGION, profile_name=aws_profile)
             return profile_session.client(service)
         else:
             # No profile → IAM Role will be used (via metadata service)
             logger.info(f"Initializing client {service} in production using IAM Role")
-            session = aioboto3.Session(region_name=region)
-            return session.client(service, region_name=region)
+            return _session.client(service, region_name=AWS_REGION)
