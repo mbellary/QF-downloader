@@ -1,8 +1,8 @@
-import aiosqlite
-import asyncio
-from pathlib import Path
 import datetime
+import sqlite3
+from pathlib import Path
 
+import aiosqlite
 
 CREATE_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS downloads (
@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS fetch_status (
 )
 """
 
+
 class DownloadDB:
     def __init__(self, db_path: str):
         self.db_path = db_path
@@ -40,7 +41,8 @@ class DownloadDB:
 
     async def exists_checksum(self, provider: str, checksum: str) -> bool:
         async with self._conn.execute(
-            "SELECT 1 FROM downloads WHERE provider = ? AND checksum = ? LIMIT 1", (provider, checksum)
+            "SELECT 1 FROM downloads WHERE provider = ? AND checksum = ? LIMIT 1",
+            (provider, checksum),
         ) as cur:
             row = await cur.fetchone()
             return row is not None
@@ -48,7 +50,7 @@ class DownloadDB:
     async def add_download(self, provider: str, url: str, checksum: str, s3_key: str):
         await self._conn.execute(
             "INSERT INTO downloads (provider, url, checksum, s3_key) VALUES (?, ?, ?, ?)",
-            (provider, url, checksum, s3_key)
+            (provider, url, checksum, s3_key),
         )
         # Update or insert the last_successful timestamp
         now = datetime.datetime.utcnow()
@@ -62,13 +64,12 @@ class DownloadDB:
         )
         await self._conn.commit()
 
-
     async def get_last_successful(self, provider):
         """Return the last successful fetch timestamp (UTC) or None."""
         async with aiosqlite.connect(self.db_path) as db:
             async with db.execute(
-                    "SELECT last_successful FROM fetch_status WHERE provider = ?",
-                    (provider,),
+                "SELECT last_successful FROM fetch_status WHERE provider = ?",
+                (provider,),
             ) as cursor:
                 row = await cursor.fetchone()
                 if row and row[0]:
@@ -76,12 +77,9 @@ class DownloadDB:
                 return None
 
 
-# Backwards-compatible synchronous DB wrapper used by integration tests
-import sqlite3
-
-
 class Database:
     """Simple synchronous sqlite-backed helper used by integration tests."""
+
     def __init__(self, db_path: str):
         self.db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
