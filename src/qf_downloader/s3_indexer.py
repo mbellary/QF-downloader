@@ -7,14 +7,22 @@ logger = get_logger("downloader.s3_indexer")
 
 class S3Indexer:
     def __init__(self, table_name: str = RAW_FILE_INDEX_TABLE):
-        self.table = table_name
-        # self._session = aioboto3.Session(
-        #     aws_access_key_id=AWS_ACCESS_KEY_ID,
-        #     aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        #     region_name=AWS_REGION,
-        # )
+        self.table_name = table_name
 
-    async def index_file(self, provider: str, pair: str, date: str, s3_key: str):
+    @staticmethod
+    def _av_s(value: str) -> dict[str, str]:
+        # DynamoDB AttributeValue for a string.
+        return {"S": value}
+
+    @staticmethod
+    def _unwrap_s(av: object) -> str:
+        # Extract a string from a DynamoDB AttributeValue.
+        if isinstance(av, dict) and "S" in av:
+            return str(av["S"])
+        # Fallback for unexpected shapes.
+        return str(av)
+
+    async def index_file(self, provider: str, pair: str, date: str, s3_key: str) -> None:
         pk = f"{pair}#{provider}"
         sk = f"{date}#{s3_key}"
 
@@ -33,7 +41,9 @@ class S3Indexer:
 
         logger.info(f"Indexed raw file: pk={pk}, sk={sk}")
 
-    async def query_keys(self, provider: str, pair: str, start_date: str, end_date: str):
+    async def query_keys(
+        self, provider: str, pair: str, start_date: str, end_date: str
+    ) -> list[str]:
         """
         Query DynamoDB for s3_keys in date range (inclusive).
         start_date, end_date format: YYYYMMDD
@@ -43,9 +53,18 @@ class S3Indexer:
         start_sk = f"{start_date}#"
         end_sk = f"{end_date}#~"  # tilde ensures inclusive upper bound
 
-        results = []
+        results: list[str] = []
         async with await get_aboto3_client("dynamodb") as dynamo:
-            table = await dynamo.Table(self.table)
+            query_kwargs = {
+                "TableName": self.table_name,
+                "KeyConditionExpression": "pk = :pk AND sk BETWEEN :start AND :end",
+                "ExpressionAttributeValues": {
+                    ":pk": self._av_s(pk),
+                    ":start": self._av_s(start_sk),
+                    ":end": self._av_s(end_sk),
+                },
+                "Limit": 1000,
+            }
 
             # DynamoDB query paginated
             resp = await table.query(
@@ -68,6 +87,8 @@ class S3Indexer:
                     items = resp.get("Items", [])
                 else:
                     break
+
+                resp = await dynamo.query(**(query_kwargs | {"ExclusiveStartKey": lek}))
 
         results = sorted(results)
         logger.info("Queried index for %s/%s -> %d keys", provider, pair, len(results))
