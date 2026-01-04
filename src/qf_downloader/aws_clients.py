@@ -12,21 +12,34 @@ from qf_downloader.logger import get_logger
 
 logger = get_logger("data_transformer.clients")
 
-# aioboto3 session
-_session = aioboto3.Session(region_name=AWS_REGION)
-_boto3_session = boto3.session.Session(region_name=AWS_REGION)
+
+def _runtime_config() -> tuple[str, str | None, str, str | None, str | None]:
+    """Resolve runtime AWS configuration.
+
+    Important: config values can be stale if modules are imported before tests
+    mutate environment variables. Prefer environment variables at call time.
+    """
+
+    app_env = (os.getenv("APP_ENV") or APP_ENV or "production").lower()
+    localstack_url = os.getenv("LOCALSTACK_URL") or LOCALSTACK_URL
+    region = os.getenv("AWS_REGION") or AWS_REGION
+    access_key = os.getenv("AWS_ACCESS_KEY_ID") or AWS_ACCESS_KEY_ID
+    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY") or AWS_SECRET_ACCESS_KEY
+    return app_env, localstack_url, region, access_key, secret_key
 
 
 def get_boto3_client(service):
-    if APP_ENV == "localstack":
+    app_env, localstack_url, region, access_key, secret_key = _runtime_config()
+
+    if app_env == "localstack":
         # LocalStack setup
         logger.info(f"Initializing client {service} locally")
         return boto3.client(
             service,
-            region_name=AWS_REGION,
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-            endpoint_url=LOCALSTACK_URL,
+            region_name=region,
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            endpoint_url=localstack_url,
         )
     else:
         # Production: use IAM Role if available
@@ -47,7 +60,7 @@ def get_boto3_client(service):
         else:
             # No profile → IAM Role will be used (via metadata service)
             logger.info(f"Initializing client {service} in production using IAM Role")
-            return boto3.client(service, region_name=AWS_REGION)
+            return boto3.client(service, region_name=region)
 
 
 class AwsClientManager:
@@ -81,15 +94,18 @@ class AwsClientManager:
 
 
 async def get_aboto3_client(service):
-    if APP_ENV == "localstack":
+    app_env, localstack_url, region, access_key, secret_key = _runtime_config()
+
+    if app_env == "localstack":
         # LocalStack setup
         logger.info(f"Initializing client {service} locally")
-        return _session.client(
+        session = aioboto3.Session(region_name=region)
+        return session.client(
             service,
-            region_name=AWS_REGION,
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-            endpoint_url=LOCALSTACK_URL,
+            region_name=region,
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            endpoint_url=localstack_url,
         )
     else:
         # Production: use IAM Role if available
@@ -103,9 +119,10 @@ async def get_aboto3_client(service):
             logger.info(
                 f"Initializing client {service} in production using AWS_PROFILE {aws_profile}"
             )
-            profile_session = aioboto3.Session(region_name=AWS_REGION, profile_name=aws_profile)
+            profile_session = aioboto3.Session(region_name=region, profile_name=aws_profile)
             return profile_session.client(service)
         else:
             # No profile → IAM Role will be used (via metadata service)
             logger.info(f"Initializing client {service} in production using IAM Role")
-            return _session.client(service, region_name=AWS_REGION)
+            session = aioboto3.Session(region_name=region)
+            return session.client(service, region_name=region)

@@ -27,6 +27,9 @@ This plan is scoped to integration behavior. Unit tests and offline behavior are
 - [x] (2026-01-04 00:00Z) Verified local Makefile supports starting Dockerized dependencies via `RUNTIME=docker`.
 - [x] (2026-01-04 00:00Z) Created GitHub tracking issue: https://github.com/mbellary/QF-downloader/issues/6
 - [x] (2026-01-04 00:00Z) Created design document: `plans/p0_4_integration_tests/p0_4_integration_tests_design.md`
+- [x] (2026-01-04 00:00Z) Implemented LocalStack-backed integration tests: `tests/integration/test_localstack_boundaries.py` with fixtures in `tests/integration/conftest.py`.
+- [ ] Define a minimal but real integration scenario: write to S3 and index to DynamoDB using LocalStack, then query back (S3 implemented; DynamoDB roundtrip implemented; S3Indexer path pending fix).
+- [ ] Update Docker Compose configuration so LocalStack provides the services the code uses (S3 and DynamoDB) and so container-to-container networking works.
 - [ ] Define a minimal but real integration scenario: write to S3 and index to DynamoDB using LocalStack, then query back.
 - [ ] Update Docker Compose configuration so LocalStack provides the services the code uses (S3 and DynamoDB) and so container-to-container networking works.
 - [ ] Implement integration tests under `tests/integration/` that pass under both execution modes.
@@ -208,6 +211,15 @@ Acceptance is met when all of the following are true:
   - pytest-in-Docker via Docker Compose.
 - Makefile provides a stable, documented one-command path to run integration tests.
 - CI runs integration tests using the same compose workflow that developers use locally.
+
+The integration test suite that must pass includes at least:
+
+- `tests/integration/conftest.py`
+- `tests/integration/test_localstack_boundaries.py`
+
+Note: `tests/integration/test_localstack_boundaries.py::test_s3indexer_index_and_query` is currently marked `xfail` because `src/qf_downloader/s3_indexer.py` treats an `aioboto3` client as a resource (`Table()`), which is incompatible. Once corrected, this test should be changed to a normal passing test.
+
+Note: In Tester mode, tests are implemented but not executed by this agent. Execution validation is expected to be performed by the Developer.
 
 ## Idempotence and Recovery
 
