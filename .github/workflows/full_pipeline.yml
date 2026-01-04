@@ -17,7 +17,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: "3.11"
+        python-version: "3.14"
 
     - name: Install uv
       run: |
@@ -52,13 +52,30 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         files: coverage.xml
+        token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
   unit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python for unit job
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
       - uses: astral-sh/setup-uv@v1
-      - run: uv sync --dev
+      - name: Create virtual environment for uv
+        run: |
+          uv venv
+          source .venv/bin/activate
+      - name: Sync uv environment (install runtime deps from lock)
+        run: |
+          uv sync --dev
+      - name: Install dev dependencies for unit job
+        run: |
+          uv pip install -e ".[dev]"
+      - name: Verify pytest available
+        run: |
+          uv run pip show pytest || uv run pip list
       - run: uv run pytest tests/unit -q
 
   integration-docker:
