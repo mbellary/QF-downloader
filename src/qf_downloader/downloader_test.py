@@ -5,11 +5,12 @@ Usage:
     python test_downloader_async.py --url https://httpbin.org/html --out ./download_test.html
 """
 
-import aiohttp
-import asyncio
-import aiofiles
 import argparse
+import asyncio
 from pathlib import Path
+
+import aiofiles
+import aiohttp
 
 HEADERS = {
     "User-Agent": (
@@ -23,12 +24,14 @@ HEADERS = {
 
 
 async def fetch_file(url: str, out_path: str, disable_ssl: bool = False):
-    connector = aiohttp.TCPConnector()
+    connector = aiohttp.TCPConnector(ssl=False) if disable_ssl else aiohttp.TCPConnector()
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
 
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(connector=connector) as session:
         print(f"→ Fetching: {url}")
-        async with session.request('GET',url, headers=HEADERS, timeout=60, params={}, auth=None) as resp:
+        async with session.request(
+            "GET", url, headers=HEADERS, timeout=60, params={}, auth=None
+        ) as resp:
             resp.raise_for_status()
             content = await resp.content.read()
             print(f"✓ Status: {resp.status}, received {len(content)} bytes")

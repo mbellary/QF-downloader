@@ -1,26 +1,27 @@
 import hashlib
-import aiohttp
-import asyncio
-import json
 import os
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-from typing import Dict, Any
-from datetime import datetime, timedelta, UTC
+from typing import Any, Dict
 
-from qf_downloader.utils import ensure_dir, guess_content_type
-from qf_downloader.storage import S3Client
+import aiohttp
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+
+from qf_downloader.config import S3_BUCKET
 from qf_downloader.db import DownloadDB
 from qf_downloader.logger import get_logger
-from qf_downloader.config import S3_BUCKET
-from .s3_indexer import S3Indexer
+from qf_downloader.storage import S3Client
+from qf_downloader.utils import ensure_dir, guess_content_type
 
+from .s3_indexer import S3Indexer
 
 logger = get_logger("downloader.downloader")
 
 
 class ProviderDownloader:
-    def __init__(self, provider: Dict[str, Any], s3: S3Client, db: DownloadDB, base_data_dir="./data"):
+    def __init__(
+        self, provider: Dict[str, Any], s3: S3Client, db: DownloadDB, base_data_dir="./data"
+    ):
         self.provider = provider
         self.s3 = s3
         self.db = db
@@ -79,7 +80,9 @@ class ProviderDownloader:
         # ---------------------------------------------------------
         async with aiohttp.ClientSession() as session:
             try:
-                resp, content = await self._fetch(session, method, url, params=params, headers=headers, auth=auth)
+                resp, content = await self._fetch(
+                    session, method, url, params=params, headers=headers, auth=auth
+                )
             except Exception as e:
                 logger.error(f"[{pair}] Failed {url} → {e}")
                 return {"status": "error", "url": url}
@@ -100,19 +103,14 @@ class ProviderDownloader:
         )
 
         await self.s3.upload_file(
-            content=content,
-            key=s3_key,
-            content_type=guess_content_type(url, filename)
+            content=content, key=s3_key, content_type=guess_content_type(url, filename)
         )
 
         await self.db.add_download(provider_key, url, checksum, s3_key)
         logger.info(f"📤 Uploaded to s3://{S3_BUCKET}/{s3_key}")
 
         await self.indexer.index_file(
-            provider=self.provider['name'],
-            pair=pair,
-            date=f"{yyyy}{mm}{dd}",
-            s3_key=s3_key
+            provider=self.provider["name"], pair=pair, date=f"{yyyy}{mm}{dd}", s3_key=s3_key
         )
 
         return {"status": "uploaded", "pair": pair, "key": s3_key}
@@ -141,9 +139,11 @@ class ProviderDownloader:
                 return aiohttp.BasicAuth(user, pw)
         return None
 
-    @retry(retry=retry_if_exception_type(Exception),
-           stop=stop_after_attempt(5),
-           wait=wait_exponential(min=2, max=30))
+    @retry(
+        retry=retry_if_exception_type(Exception),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(min=2, max=30),
+    )
     async def _fetch(self, session, method, url, params, headers, auth):
         logger.info(f"Fetching {url}")
         async with session.request(method, url, params=params, headers=headers, auth=auth) as resp:

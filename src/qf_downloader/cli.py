@@ -1,22 +1,23 @@
-import typer
 import asyncio
-import yaml
 from datetime import datetime, timedelta
-from pathlib import Path
+
+import click
+import typer
+import yaml
 
 from .config import (
+    AWS_ACCESS_KEY_ID,
+    AWS_REGION,
+    AWS_SECRET_ACCESS_KEY,
+    DB_PATH,
     POLL_INTERVAL_SECONDS,
     PROVIDERS_FILE,
-    DB_PATH,
     S3_BUCKET,
-    AWS_ACCESS_KEY_ID,
-    AWS_SECRET_ACCESS_KEY,
-    AWS_REGION
 )
-from .downloader import ProviderDownloader
 from .db import DownloadDB
-from .storage import S3Client
+from .downloader import ProviderDownloader
 from .logger import get_logger
+from .storage import S3Client
 
 logger = get_logger("downloader.cli")
 
@@ -24,9 +25,8 @@ app = typer.Typer(help="MT5 Multi-Pair Downloader CLI")
 
 # Backwards-compatible CLI object expected by tests. Provide a lightweight
 # click `Command` that responds to `--help`. Runtime can still use `app`.
-import click
-
 cli = click.Command(name="qf_downloader")
+
 
 # ----------------------------------------------------------
 # LIST PROVIDERS
@@ -43,6 +43,7 @@ def list_providers(providers_file: str = None):
             f"- {p['name']}: supports_pairs={p.get('supports_pairs')}, "
             f"url_template={p.get('url_template')}"
         )
+
 
 # ----------------------------------------------------------
 # NORMAL RUNTIME POLLING LOOP (incremental updates)
@@ -81,15 +82,12 @@ def run(providers_file: str = None):
         providers_cfg = yaml.safe_load(fh)
     asyncio.run(_run_loop(providers_cfg))
 
+
 # ----------------------------------------------------------
 # BACKFILL COMMAND (MULTI-PAIR, MULTI-DAY)
 # ----------------------------------------------------------
 @app.command()
-def backfill(
-    provider_name: str,
-    years: int = 5,
-    providers_file: str = None
-):
+def backfill(provider_name: str, years: int = 5, providers_file: str = None):
     """
     Download historical data for the given provider for last N years.
     """
