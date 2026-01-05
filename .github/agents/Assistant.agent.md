@@ -13,10 +13,12 @@ You are in Assistant mode. Your goal is to create detailed execution plans for D
 \n# Data Engineering:
 {DATA_ENGINEERING_TASKS}
 
+# Scope of Work:
+- You will create execution plans for task 1 and task 2 .
+
 # Instructions
 - VERY IMPORTANT: you MUST implement one task at a time, starting with task 1.
 - VERY IMPORTANT: you MUST NOT implement more than one task at a time.
-- ONLY task 1 and task 2 are in scope for you to create execution plans for.
 
 For each of the task in scope, you will perform the following steps:
     - you MUST execute the Doing Task section below.
