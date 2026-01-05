@@ -15,6 +15,7 @@ def test_download_single_day_upload_or_skip(tmp_path, exists_already: bool) -> N
         "name": "testprov",
         "save_path": "testprov/{pair}/{year}/{month}/{day}",
         "url_template": "https://example.invalid/{pair}/{year}/{month}/{day}.bin",
+        "artifact_type": "tick",
     }
 
     db = SimpleNamespace(
@@ -54,17 +55,24 @@ def test_download_single_day_upload_or_skip(tmp_path, exists_already: bool) -> N
 
     expected_content_type = guess_content_type(expected_url, filename)
 
-    s3.upload_file.assert_awaited_once_with(
-        content=content,
-        key=expected_s3_key,
-        content_type=expected_content_type,
+    expected_sidecar_key = f"{expected_s3_key}.metadata.json"
+
+    keys = [call.kwargs["key"] for call in s3.upload_file.await_args_list]
+    assert expected_s3_key in keys
+    assert expected_sidecar_key in keys
+
+    raw_call = next(
+        call for call in s3.upload_file.await_args_list if call.kwargs["key"] == expected_s3_key
     )
+    assert raw_call.kwargs["content"] == content
+    assert raw_call.kwargs["content_type"] == expected_content_type
     db.add_download.assert_awaited_once()
     dl.indexer.index_file.assert_awaited_once_with(
         provider="testprov",
         pair="EURUSD",
         date=f"{yyyy}{mm}{dd}",
         s3_key=expected_s3_key,
+        artifact_type="tick",
     )
 
 

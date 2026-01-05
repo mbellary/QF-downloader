@@ -1,11 +1,13 @@
 import importlib
 import os
+import time
 import uuid
 from urllib.parse import urlparse
 
 import boto3
 import pytest
 from botocore.config import Config
+from botocore.exceptions import ClientError
 
 
 def _default_localstack_url() -> str:
@@ -18,6 +20,83 @@ def _endpoint_hostport(url: str) -> str:
     if not parsed.scheme or not parsed.netloc:
         return url
     return parsed.netloc
+
+
+def _wait_for_localstack(
+    *,
+    endpoint_url: str,
+    region: str,
+    aws_access_key_id: str,
+    aws_secret_access_key: str,
+    timeout_seconds: float = 30.0,
+) -> None:
+    client_config = Config(connect_timeout=1, read_timeout=2, retries={"max_attempts": 1})
+    s3 = boto3.client(
+        "s3",
+        region_name=region,
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        endpoint_url=endpoint_url,
+        config=client_config,
+    )
+
+    deadline = time.monotonic() + timeout_seconds
+    last_exc: Exception | None = None
+
+    while time.monotonic() < deadline:
+        try:
+            s3.list_buckets()
+            return
+        except Exception as exc:
+            last_exc = exc
+            time.sleep(0.5)
+
+    raise RuntimeError(
+        "LocalStack is not reachable at "
+        f"{endpoint_url} (hostport={_endpoint_hostport(endpoint_url)}): {last_exc}"
+    )
+
+
+def _ensure_dynamodb_table(
+    *,
+    dynamodb,
+    table: str,
+    timeout_seconds: float = 30.0,
+) -> None:
+    deadline = time.monotonic() + timeout_seconds
+    last_exc: Exception | None = None
+
+    while time.monotonic() < deadline:
+        try:
+            try:
+                dynamodb.create_table(
+                    TableName=table,
+                    AttributeDefinitions=[
+                        {"AttributeName": "pk", "AttributeType": "S"},
+                        {"AttributeName": "sk", "AttributeType": "S"},
+                    ],
+                    KeySchema=[
+                        {"AttributeName": "pk", "KeyType": "HASH"},
+                        {"AttributeName": "sk", "KeyType": "RANGE"},
+                    ],
+                    ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
+                )
+            except ClientError as exc:
+                code = exc.response.get("Error", {}).get("Code")
+                if code != "ResourceInUseException":
+                    raise
+
+            # Wait until the table is usable. This can race on startup.
+            dynamodb.get_waiter("table_exists").wait(
+                TableName=table,
+                WaiterConfig={"Delay": 1, "MaxAttempts": 10},
+            )
+            return
+        except Exception as exc:  # noqa: BLE001
+            last_exc = exc
+            time.sleep(0.5)
+
+    raise RuntimeError(f"Timed out ensuring DynamoDB table {table}: {last_exc}")
 
 
 @pytest.fixture(scope="session")
@@ -52,22 +131,15 @@ def localstack_env():
 
     # Skip if LocalStack is not reachable.
     try:
-        client_config = Config(connect_timeout=1, read_timeout=2, retries={"max_attempts": 1})
-        s3 = boto3.client(
-            "s3",
-            region_name=os.environ["AWS_REGION"],
+        _wait_for_localstack(
+            endpoint_url=endpoint_url,
+            region=os.environ["AWS_REGION"],
             aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
             aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-            endpoint_url=endpoint_url,
-            config=client_config,
         )
-        s3.list_buckets()
     except Exception as exc:
         mp.undo()
-        pytest.skip(
-            "LocalStack is not reachable at "
-            f"{endpoint_url} (hostport={_endpoint_hostport(endpoint_url)}): {exc}"
-        )
+        pytest.skip(str(exc))
 
     payload = {
         "endpoint_url": endpoint_url,
@@ -114,23 +186,6 @@ def localstack_resources(localstack_env):
         pass
 
     # DynamoDB table
-    try:
-        dynamodb.create_table(
-            TableName=table,
-            AttributeDefinitions=[
-                {"AttributeName": "pk", "AttributeType": "S"},
-                {"AttributeName": "sk", "AttributeType": "S"},
-            ],
-            KeySchema=[
-                {"AttributeName": "pk", "KeyType": "HASH"},
-                {"AttributeName": "sk", "KeyType": "RANGE"},
-            ],
-            ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-        )
-        waiter = dynamodb.get_waiter("table_exists")
-        waiter.wait(TableName=table)
-    except Exception:
-        # Treat table provisioning as idempotent.
-        pass
+    _ensure_dynamodb_table(dynamodb=dynamodb, table=table)
 
     return localstack_env
