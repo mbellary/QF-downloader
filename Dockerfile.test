@@ -1,14 +1,29 @@
+# syntax=docker/dockerfile:1.6
 
 FROM python:3.13-slim
-WORKDIR /app
-COPY . .
-# Ensure pip and build tools are recent
-RUN python -m pip install --upgrade pip setuptools wheel
-# Install uv (optional) and then install project with dev extras so pytest is available
-RUN python -m pip install uv
-# attempt to use uv to sync if available (non-fatal)
-RUN uv sync --dev || true
-# Install project in editable mode with dev dependencies (includes pytest)
-RUN python -m pip install -e '.[dev]'
 
-CMD ["pytest"]
+WORKDIR /app
+
+# System deps only if needed
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy only dependency metadata first (CACHE FRIENDLY)
+COPY pyproject.toml uv.lock README.md ./
+
+# Install uv once
+RUN python -m pip install --no-cache-dir uv
+
+# Install deps with cache mount
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --dev --frozen
+
+# Now copy the source code
+COPY . .
+
+# NO editable install
+# NO pip install -e
+# NO second dependency install
+
+CMD ["pytest", "-q"]
