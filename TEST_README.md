@@ -152,6 +152,12 @@ Most common local command:
 make test SUITE=unit
 ```
 
+Run the full local check (format-check + lint + tests):
+
+```bash
+make check SUITE=unit
+```
+
 Equivalent without Makefile:
 
 ```bash
@@ -229,6 +235,21 @@ The Makefile is the canonical interface for tests.
 - `make setup`
   - Sync dependencies (tries `uv sync --venv .venv`, then `uv sync --dev`, then `uv sync`)
   - Ensures pytest is available (may fall back to creating `.venv` and installing `.[dev]`)
+
+- `make format`
+  - Auto-format code using Ruff (`ruff format .`)
+
+- `make format-check`
+  - Verify formatting is clean without making changes (`ruff format --check .`)
+
+- `make lint`
+  - Run Ruff lint checks (`ruff check .`)
+
+- `make lint-fix`
+  - Auto-fix lint issues where possible (`ruff check . --fix`)
+
+- `make check`
+  - Runs `format-check` + `lint` + `test` (respects `SUITE` and `RUNTIME`)
 
 - `make test`
   - Runs tests with variables:

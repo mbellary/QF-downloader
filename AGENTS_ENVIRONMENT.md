@@ -31,13 +31,15 @@ Verify installation:
 ```bash
 uv --version
 ```
-## 🛠 Project Installation
-<!-- Clone the repository:
+## 🛠 Syncronhize Local Workspace
+Update local workspace with remote git changes
+
 ```bash
-git clone https://github.com/mbellary/math-lib.git
-cd math-lib
-``` -->
+git pull origin main
+```
+
 Install dependencies in editable mode (required for tests + CI):
+
 ```bash
 uv pip install -e ".[dev]"
 ```
@@ -49,12 +51,7 @@ This will automatically:
 
 ✔ Expose tools like pytest and ruff
 
-## 🧩 Virtual Environment
-Ensure environment is active before running commands:
-```bash
-source .venv/bin/activate
-```
-(uv normally handles this automatically when using uv run)
+## 🧩 UV Virtual Environment
 Preferred execution pattern:
 ```bash
 uv run <command>
@@ -75,73 +72,75 @@ git switch -c task/$short-task-name
 ## 🏗 Project Structure Overview
 ```bash
 QF-downloader/
-│─ .github/
-│   ├─ workflows/
-│   │   └─ full_pipeline.yml
-│   ├─ BRANCH/
-│   │   └─ branch.md
-│   ├─ PULL_REQUEST/
-│   │   └─ pull_request.md
-│   ├─ agents/
-│   │   ├─ Assistant.agent.md
-│   │   ├─ Data Engineering Architect.agent.md
-│   │   ├─ Program Manager.agent.md
-│   │   └─ Tester.agent.md
-│   ├─ AGENTS_COLLABORATION.md
-│   ├─ auto_assign.yml
-│   └─ CODEOWNERS
-├─ docs/
-│   └─ quant/
-│       ├─ README.md
-│       ├─ FROZEN.md
-│       ├─ schema_registry.yaml
-│       ├─ data_providers/
-│       └─ target_schemas/
-├─ plans/
-│   ├─ p0_1_raw_market_data_ingestion/
-│   │   └─ p0_1_raw_market_data_ingestion_execplan.md
-│   └─ p0_2_macro_news_ingestion/
-│       └─ p0_2_macro_news_ingestion_execplan.md
-├─ src/
-│   └─ qf_downloader/
-│       ├─ __init__.py
-│       ├─ cli.py
-│       ├─ config.py
-│       ├─ db.py
-│       ├─ downloader.py
-│       ├─ downloader_test.py
-│       ├─ s3_indexer.py
-│       ├─ storage.py
-│       ├─ utils.py
-│       ├─ providers.yaml
-│       ├─ providers_single_pair.yaml
-│       ├─ AGENTS_CODING_GUIDELINES.md
-│       └─ AGENTS_LINTING.md
-├─ data/
+├─ .github/
+│  ├─ agents/
+│  ├─ workflows/
+│  ├─ BRANCH/
+│  ├─ PULL_REQUEST/
+│  ├─ AGENTS_COLLABORATION.md
+│  ├─ auto_assign.yml
+│  └─ CODEOWNERS
 ├─ docker/
-│   └─ docker-compose.test.yml
+│  └─ docker-compose.test.yml
+├─ docs/
+│  └─ quant/
+│     ├─ data_providers/
+│     ├─ target_schemas/
+│     └─ (spec + schema docs)
+├─ plans/
+│  ├─ p0_1_raw_market_data_ingestion/
+│  ├─ p0_2_macro_news_ingestion/
+│  ├─ p0_4_integration_tests/
+│  └─ p0_4_unit_tests/
+├─ src/
+│  └─ qf_downloader/
+│     ├─ __init__.py
+│     ├─ aws_clients.py
+│     ├─ cli.py
+│     ├─ config.py
+│     ├─ db.py
+│     ├─ downloader.py
+│     ├─ logger.py
+│     ├─ s3_indexer.py
+│     ├─ storage.py
+│     ├─ utils.py
+│     ├─ providers.yaml
+│     ├─ providers_single_pair.yaml
+│     ├─ .env.dev
+│     ├─ .env.prod
+│     ├─ AGENTS_CODING_GUIDELINES.md
+│     └─ AGENTS_LINTING.md
 ├─ targets/
-│   ├─ alpha_dir_label_metadata.json
-│   ├─ macro_event_metadata.json
-│   ├─ microstructure_schema.json
-│   └─ path_label_metadata.json
+│  ├─ alpha_dir_label_metadata.json
+│  ├─ macro_event_metadata.json
+│  ├─ microstructure_schema.json
+│  └─ path_label_metadata.json
+├─ tests/
+│  ├─ integration/
+│  ├─ unit/
+│  └─ AGENTS_TESTS.md
+├─ Agents.md
+├─ AGENTS_ENVIRONMENT.md
+├─ base_prompt.txt
+├─ coverage.xml
+├─ data_tasks.md
 ├─ docker-compose.yml
 ├─ docker-compose.test.yml
 ├─ Dockerfile.dev
 ├─ Dockerfile.prod
 ├─ Dockerfile.test
+├─ Makefile
+├─ PLANS.md
 ├─ prometheus.yml
 ├─ pyproject.toml
 ├─ pytest.ini
-├─ uv.lock
 ├─ README.md
-├─ Agents.md
-└─ AGENTS_ENVIRONMENT.md
+├─ TEST_README.md
+└─ uv.lock
 ```
 Rules:
 
 * All Python source lives under src/qf_downloader/
-* Tests currently live alongside source (e.g. src/qf_downloader/downloader_test.py)
 
 Agents must preserve this layout.
 

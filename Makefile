@@ -5,6 +5,7 @@ UV ?= uv
 # Use `uv run --dev -- python -m pytest` so pytest runs under the synced venv.
 # This uses the `--dev` context which is supported by local `uv` versions.
 PYTEST ?= $(UV) run --dev -- python -m pytest
+RUFF ?= $(UV) run --dev -- ruff
 APP_ENV ?= production
 SUITE ?= all
 RUNTIME ?= local
@@ -18,15 +19,43 @@ PYTEST_ARGS ?=
 
 DOCKER_COMPOSE := docker compose -f $(DOCKER_COMPOSE_FILE)
 
-.PHONY: help setup docker-up docker-down test coverage teardown clean _runtime-up _runtime-down _exec-tests
+.PHONY: help setup format format-check lint lint-fix check docker-up docker-down test coverage teardown clean _runtime-up _runtime-down _exec-tests
 
 help:
 	@echo "Available targets:"
 	@echo "  make setup                # Sync Python dependencies with uv"
+	@echo "  make format               # Auto-format code (Ruff)"
+	@echo "  make format-check         # Check formatting without changes (Ruff)"
+	@echo "  make lint                 # Run lint checks (Ruff)"
+	@echo "  make lint-fix             # Auto-fix lint issues where possible (Ruff)"
+	@echo "  make check                # Run format-check + lint + tests (respects SUITE/RUNTIME)"
 	@echo "  make test                 # Run parametrized test suite (SUITE=unit|integration|all, RUNTIME=local|docker)"
 	@echo "  make coverage             # Run tests with coverage reporting"
 	@echo "  make teardown             # Stop dockerized test stack and clean artifacts"
 	@echo "  make clean                # Remove caches and coverage data"
+
+format:
+	@echo "[ruff] formatting";
+	$(RUFF) format .
+
+format-check:
+	@echo "[ruff] format check";
+	$(RUFF) format --check .
+
+lint:
+	@echo "[ruff] lint";
+	$(RUFF) check .
+
+lint-fix:
+	@echo "[ruff] lint (fix)";
+	$(RUFF) check . --fix
+
+check:
+	@STATUS=0; \
+	$(MAKE) --no-print-directory format-check || STATUS=$$?; \
+	if [ $$STATUS -eq 0 ]; then $(MAKE) --no-print-directory lint || STATUS=$$?; fi; \
+	if [ $$STATUS -eq 0 ]; then $(MAKE) --no-print-directory test SUITE=$(SUITE) RUNTIME=$(RUNTIME) || STATUS=$$?; fi; \
+	exit $$STATUS
 
 setup:
 	@echo "[setup] Ensuring Python deps are synced via $(UV)"

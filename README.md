@@ -22,6 +22,21 @@ uv sync --venv .venv
 
 Then run commands via `uv run ...`.
 
+## Development workflow
+
+Run formatting + lint:
+
+```bash
+make format
+make lint
+```
+
+Run the full local check (format-check + lint + tests):
+
+```bash
+make check
+```
+
 ## Configuration
 
 Runtime config is environment-driven and loaded by `qf_downloader.config`:
@@ -118,6 +133,12 @@ Run only unit tests (no Docker):
 
 ```bash
 make test SUITE=unit
+```
+
+Run format + lint + tests together:
+
+```bash
+make check
 ```
 
 If you don’t have `make` available, the underlying unit-test command is:
