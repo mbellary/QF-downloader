@@ -59,6 +59,7 @@ Ensure raw market data is ingested once, timestamped once, and never reinterpret
 
 - [x] (2026-01-05) Environment verified on Windows: `make check` and `make test SUITE=unit` pass on branch `docs/p0-1-raw-market-data-ingestion-execplan`.
 - [x] (2026-01-05) GitHub tracking issue created: https://github.com/mbellary/QF-downloader/issues/12
+- [x] (2026-01-05) Task branch: https://github.com/mbellary/QF-downloader/tree/task/p0-1-raw-market-data-ingestion
 - [x] (2026-01-05) Design document created: `plans/p0_1_raw_market_data_ingestion/p0_1_raw_market_data_ingestion_design.md`
 - [x] (2026-01-05) Unit tests added for Phase 0.1 design contracts (not executed in Tester mode): `tests/unit/test_p0_1_raw_market_ingestion.py`
 - [x] (2026-01-05) Implemented Phase 0.1 ingestion behavior (deterministic paths, sidecar metadata, failure recording, artifact_type indexing):
@@ -70,8 +71,8 @@ Ensure raw market data is ingested once, timestamped once, and never reinterpret
   - Phase 0.1: `tests/integration/test_p0_1_raw_market_ingestion_integration.py`
   - Verified via: `make test SUITE=integration RUNTIME=docker PYTEST_ARGS='-rs'` (user-confirmed passing)
 
-- [ ] Push branch `task/p0-1-raw-market-data-ingestion` to origin.
-- [ ] Create PR for Issue #12 and link it here.
+- [x] (2026-01-05) Implementation commit: https://github.com/mbellary/QF-downloader/commit/522e877
+- [x] (2026-01-05) PR opened (Closes #12): https://github.com/mbellary/QF-downloader/pull/13
 
 ## Surprises & Discoveries
 
