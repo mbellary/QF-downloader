@@ -31,11 +31,11 @@ Verify installation:
 ```bash
 uv --version
 ```
-## 🛠 Syncronhize Local Workspace
+## 🛠 Setup Local Workspace
 Update local workspace with remote git changes
 
 ```bash
-git pull origin main
+git pull origin main && make check SUITE=unit
 ```
 
 Install dependencies in editable mode (required for tests + CI):
@@ -147,9 +147,7 @@ Agents must preserve this layout.
 ## 🧹 Developer Setup Checklist
 Run these after installation:
 ```bash
-uv run ruff format .         # auto-format code
-uv run ruff check .          # lint
-uv run pytest --cov          # run tests with coverage
+make check SUITE=unit
 ```
 If failures occur → fix locally before committing.
 

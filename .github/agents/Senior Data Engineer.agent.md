@@ -4,7 +4,7 @@ tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web/fetch', 'copilot-con
 handoffs:
   - label: Start Execution plan
     agent: Assistant
-    prompt: The Senior data engineer has implemented and tested the feature. Please proceed with creating the execution plan for the next task.
+    prompt: The Senior Data engineer has implemented and tested the feature. Please proceed with creating the execution plan for the next task.
     send: true
 ---
 
@@ -23,8 +23,7 @@ When the Program Manager provides the plans, first use the following documentati
     - Implementation:
         - Review the $short-task-name_design.md design.
         - Implement the feature plan according to the plans/$short-task-name_design.md design document in the task/$short-task-name task branch.
-        - Execute code formatter and linter commands first after completing the implementation as defined in {DEVELOPMENT_TESTING_GUIDELINES}.
-        - Execute tests for the implemented feature as defined in {DEVELOPMENT_TESTING_GUIDELINES}.
+        - you MUST execute and verify the "Running the Tests" section defined in {DEVELOPMENT_TESTING_GUIDELINES} after implementing the feature.
         - NEVER execute tests if there are code formating or linter issues.
         - Push the local branch to remote repository {GITHUB_REPO}.
         - NEVER push local branch if the tests are not executed or the tests have failed.

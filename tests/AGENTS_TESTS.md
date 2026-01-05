@@ -18,48 +18,62 @@ This project uses:
 - `pytest-cov` for coverage reporting
 - `ruff` for linting + formatting checks
 - `uv` for dependency and virtual environment management
+- `Makefile` for test execution and coverage.
 
-### Install development dependencies
-
-```bash
-uv pip install -e ".[dev]"
-```
-This will create and activate .venv automatically.
-
-Verify installation:
-```bash
-uv run ruff --version
-```
 
 ## 🧪 Running the Tests
-<!-- #### Basic test run
-```bash
-uv run pytest -v
-```
-#### Test with coverage report
-```bash
-uv run pytest --cov=math_lib --cov-report=term
-``` -->
-#### Generate coverage XML report (required by CI)
-```bash
-uv run pytest --cov=math_lib --cov-report=xml
-```
+### 1. Prerequisites
 
-Test files must reside under:
+- Python version per `pyproject.toml` (currently **>= 3.13**)
+- Recommended: `Makefile`
+
+### 2. Test Setup
+- Sync dependencies and Ensures pytest is available
+
 ```bash
-tests/
+make setup
 ```
 
-Example test path:
+### 3. Run Formatting and lint checks
+- Verify formatting is clean.
+- Verify Lint is clean.
+
 ```bash
-tests/test_math.py
+make check
 ```
-
-## 🧹 Format & Lint Before Running Tests
-Tests must not run unless code formatting is clean.
-* See ```docs/agents/AGENTS_LINTING.md``` for details.
-
+- Runs `format-check` + `lint` + `test` (respects `SUITE` and `RUNTIME`)
 🚫 CI will fail if formatting or lint errors exist
+
+### 4. Run Unit Tests
+```bash
+make test SUITE=unit
+```
+- Runs unit tests
+
+### 5. Run Integration Tests with docker
+```bash
+make test SUITE=integration RUNTIME=docker
+```
+- Run integration tests in the docker container
+
+#### 6. Make Coverage
+```bash
+make coverage
+```
+- Runs `make test WITH_COVERAGE=true` (adds terminal coverage report + `coverage.xml`)
+
+### 7. Stop dockerized services
+```bash
+make teardown
+```
+- Stops dockerized stack (if `RUNTIME=docker`) and removes common artifacts
+
+### 8. Clean test artifacts
+```bash
+make clean
+```
+ - Removes `.pytest_cache`, `.coverage`, `coverage.xml`, and `.venv`
+
 
 ## 🔄 CI / GitHub Actions Test Workflow
 CI runs automatically on:

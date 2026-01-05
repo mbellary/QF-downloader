@@ -30,8 +30,8 @@ For each of the task in scope, you will perform the following steps:
 Perform the following for a task:
 
     - Environment Setup:
-        - Always execute `git pull origin main` to ensure you have the latest code.
         - AlWAYS setup the development environment before creating the execution plan.
+        - You MUST start with Setup Local Workspace section defined in {DEVELOPMENT_ENVIRONMENT}.
         - You MUST implement and execute the steps defined in {DEVELOPMENT_ENVIRONMENT}.
         - You MUST execute and verify the checklists defined in {DEVELOPMENT_ENVIRONMENT}
         - ALWAYS make sure you are on the correct feature branch.
