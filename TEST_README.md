@@ -249,7 +249,7 @@ The Makefile is the canonical interface for tests.
   - Auto-fix lint issues where possible (`ruff check . --fix`)
 
 - `make check`
-  - Runs `format-check` + `lint` + `test` (respects `SUITE` and `RUNTIME`)
+  - Runs `format-check` + `lint-fix`
 
 - `make test`
   - Runs tests with variables:

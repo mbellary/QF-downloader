@@ -53,8 +53,7 @@ lint-fix:
 check:
 	@STATUS=0; \
 	$(MAKE) --no-print-directory format-check || STATUS=$$?; \
-	if [ $$STATUS -eq 0 ]; then $(MAKE) --no-print-directory lint || STATUS=$$?; fi; \
-	if [ $$STATUS -eq 0 ]; then $(MAKE) --no-print-directory test SUITE=$(SUITE) RUNTIME=$(RUNTIME) || STATUS=$$?; fi; \
+	if [ $$STATUS -eq 0 ]; then $(MAKE) --no-print-directory lint-fix || STATUS=$$?; fi; \
 	exit $$STATUS
 
 setup:

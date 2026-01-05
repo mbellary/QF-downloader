@@ -35,7 +35,7 @@ uv --version
 Update local workspace with remote git changes
 
 ```bash
-git pull origin main && make check SUITE=unit
+git pull origin main && make check && make test SUITE=unit
 ```
 
 Install dependencies in editable mode (required for tests + CI):
@@ -147,7 +147,7 @@ Agents must preserve this layout.
 ## 🧹 Developer Setup Checklist
 Run these after installation:
 ```bash
-make check SUITE=unit
+make check && make test SUITE=unit
 ```
 If failures occur → fix locally before committing.
 
