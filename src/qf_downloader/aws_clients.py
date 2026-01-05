@@ -65,7 +65,6 @@ def get_boto3_client(service):
             return boto3.client(service, region_name=region)
 
 
-
 class AwsClientManager:
     """Lightweight manager used by integration tests to upload files to S3.
 
@@ -98,11 +97,11 @@ class AwsClientManager:
 
 async def get_aboto3_client(service):
     app_env, localstack_url, region, access_key, secret_key = _runtime_config()
+    session = aioboto3.Session(region_name=region)
 
     if app_env == "localstack":
         # LocalStack setup
         logger.info(f"Initializing client {service} locally")
-        session = aioboto3.Session(region_name=region)
         return session.client(
             service,
             region_name=AWS_REGION,
@@ -127,4 +126,4 @@ async def get_aboto3_client(service):
         else:
             # No profile → IAM Role will be used (via metadata service)
             logger.info(f"Initializing client {service} in production using IAM Role")
-            return _session.client(service, region_name=AWS_REGION)
+            return session.client(service, region_name=AWS_REGION)
