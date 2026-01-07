@@ -74,6 +74,18 @@ Ensure raw market data is ingested once, timestamped once, and never reinterpret
 - [x] (2026-01-05) Implementation commit: https://github.com/mbellary/QF-downloader/commit/522e877
 - [x] (2026-01-05) PR opened (Closes #12): https://github.com/mbellary/QF-downloader/pull/13
 
+- [x] (2026-01-06) Added missing repo artifacts referenced by Task 0.1 Inputs/Outputs:
+  - Vendor endpoint spec contract: `config/vendors/fx_providers.json`
+  - Metadata schema contract: `docs/infra/phase0/schemas/raw_market_ingestion.yaml`
+
+- [x] (2026-01-06) Added secrets scaffolding for Task 0.1 Inputs:
+  - Local-only secrets contract path (gitignored): `config/secrets/fx_api_keys.json`
+  - Committed template: `config/secrets/fx_api_keys.example.json`
+  - Notes: `config/secrets/README.md`
+  - Git safety: `.gitignore` ignores `config/secrets/*.json` but allows `*.example.json`
+
+- [x] (2026-01-06) Validation: `make check` and `make test SUITE=unit` pass.
+
 ## Surprises & Discoveries
 
 - Observation: The Quant Q0.1 spec file at `docs/quant/return_calculation.yaml` is JSON content stored in a `.yaml` file. YAML 1.2 parsers can load JSON, so `yaml.safe_load` is acceptable, but this should be called out explicitly in code/docstrings.

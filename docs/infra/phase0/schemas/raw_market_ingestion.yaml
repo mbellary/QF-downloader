@@ -1,0 +1,124 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$title: "Raw Market Ingestion Sidecar Metadata"
+$comment: "Phase 0.1 (raw FX market ingestion) metadata contract. Human-readable schema; may also be used for validation."
+
+type: object
+additionalProperties: false
+required:
+  - schema_id
+  - schema_version
+  - provider
+  - pair
+  - date
+  - source
+  - hashes
+  - time_contract
+  - storage
+  - ingested_at_utc
+
+properties:
+  schema_id:
+    type: string
+    const: "infra.phase0.raw_market_ingestion"
+
+  schema_version:
+    type: string
+    description: "Semantic version of this sidecar schema."
+
+  provider:
+    type: string
+    minLength: 1
+
+  artifact_type:
+    description: "Raw artifact category for FX ingestion."
+    anyOf:
+      - type: string
+        enum: ["tick", "ohlcv"]
+      - type: "null"
+
+  pair:
+    type: string
+    description: "Instrument identifier (preferred: EURUSD; tolerated: EUR/USD)."
+    pattern: "^[A-Z]{3}/?[A-Z]{3}$"
+
+  date:
+    type: string
+    description: "Partition date in UTC as YYYYMMDD."
+    pattern: "^[0-9]{8}$"
+
+  source:
+    type: object
+    additionalProperties: false
+    required: ["url", "http_method", "request_headers_redacted"]
+    properties:
+      url:
+        type: string
+        minLength: 1
+      http_method:
+        type: string
+        minLength: 1
+      request_headers_redacted:
+        type: object
+        description: "Request headers with secrets redacted."
+        additionalProperties:
+          type: string
+
+  hashes:
+    type: object
+    additionalProperties: false
+    required: ["sha256"]
+    properties:
+      sha256:
+        type: string
+        pattern: "^[0-9a-f]{64}$"
+
+  time_contract:
+    type: object
+    additionalProperties: false
+    required:
+      - timezone
+      - timestamp_unit
+      - quant_spec_path
+      - quant_spec_sha256
+      - quant_effective_date
+    properties:
+      timezone:
+        type: string
+        const: "UTC"
+      timestamp_unit:
+        type: string
+        const: "ISO-8601"
+      quant_spec_path:
+        type: string
+        const: "docs/quant/return_calculation.yaml"
+      quant_spec_sha256:
+        type: string
+        pattern: "^[0-9a-f]{64}$"
+      quant_effective_date:
+        description: "Effective date from the Quant Q0.1 contract."
+        anyOf:
+          - type: string
+          - type: "null"
+
+  storage:
+    type: object
+    additionalProperties: false
+    required: ["local_path", "s3_bucket", "s3_key"]
+    properties:
+      local_path:
+        anyOf:
+          - type: string
+          - type: "null"
+      s3_bucket:
+        anyOf:
+          - type: string
+          - type: "null"
+      s3_key:
+        anyOf:
+          - type: string
+          - type: "null"
+
+  ingested_at_utc:
+    type: string
+    description: "Ingestion timestamp in UTC."
+    format: date-time

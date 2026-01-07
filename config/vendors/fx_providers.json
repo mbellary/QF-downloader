@@ -1,0 +1,65 @@
+{
+  "version": "0.1.0",
+  "description": "Phase 0.1 canonical FX vendor spec (raw market ingestion only).",
+  "supported_pairs": {
+    "majors": [
+      "EURUSD",
+      "GBPUSD",
+      "USDJPY",
+      "AUDUSD",
+      "USDCAD",
+      "USDCHF",
+      "NZDUSD"
+    ],
+    "minors": [
+      "EURJPY",
+      "EURGBP",
+      "GBPJPY"
+    ],
+    "metals": [
+      "XAUUSD",
+      "XAGUSD"
+    ]
+  },
+  "providers": [
+    {
+      "name": "dukascopy",
+      "enabled": true,
+      "artifact_type": "tick",
+      "supports_pairs": [
+        "EURUSD",
+        "USDJPY"
+      ],
+      "url_template": "https://datafeed.dukascopy.com/datafeed/{pair}/{year}/{month}/{day}/00h_ticks.bi5",
+      "method": "GET",
+      "auth": {},
+      "params": {},
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "dukascopy_bi5"
+    },
+    {
+      "name": "alpha_vantage_fx",
+      "enabled": false,
+      "artifact_type": "ohlcv",
+      "supports_pairs": [
+        "EURUSD",
+        "GBPUSD",
+        "USDJPY"
+      ],
+      "url_template": "https://www.alphavantage.co/query?function=FX_INTRADAY&from_symbol={base}&to_symbol={quote}&interval=1min&apikey={api_key}",
+      "method": "GET",
+      "params": {
+        "api_key_env": "ALPHA_VANTAGE_API_KEY"
+      },
+      "auth": {},
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    }
+  ]
+}
