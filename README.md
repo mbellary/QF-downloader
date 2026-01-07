@@ -2,11 +2,21 @@
 
 Async downloader workers for ingesting daily provider payloads, deduplicating via a local SQLite ledger, and uploading artifacts to S3.
 
-This repository currently implements a single concrete downloader pipeline in `qf_downloader.downloader.ProviderDownloader`:
+Phase 0.1 adds a deterministic raw FX ingestion contract:
+
+- Deterministic partitioning by `artifact_type` (`tick` vs `ohlcv`)
+- URL templating supports `{pair}` and `{base}`/`{quote}` placeholders
+- Per-artifact sidecar metadata (`<raw_key>.metadata.json`) bound to the Quant Q0.1 time contract
+- Optional roll-up manifest at `pipelines/ingestion/fx/metadata.json` (runtime-generated)
+- No silent drops: fetch failures are persisted in SQLite
+- DynamoDB indexing optionally includes `artifact_type` in the partition key
+
+This repository implements a concrete downloader pipeline in `qf_downloader.downloader.ProviderDownloader`:
 
 - For each provider and each configured pair, fetch a URL derived from `url_template` and the current date
 - Compute SHA-256 checksum, skip if already seen for `(provider, pair)`
-- Upload bytes to S3 at a key derived from `save_path` + `{pair}_{yyyymmdd}.bin`
+- Upload bytes to S3 at a key derived from `save_path` (or a deterministic default) + `{pair}_{yyyymmdd}.bin`
+- Upload a metadata sidecar JSON to `<raw_key>.metadata.json`
 
 ## Requirements
 
@@ -57,6 +67,25 @@ Common env vars:
 
 Note: the code has a placeholder default for `PROVIDERS_FILE` in `qf_downloader.config`; in practice you should set `PROVIDERS_FILE` or pass `--providers-file`.
 
+### Phase 0.1 contract artifacts
+
+These artifacts are added as part of Phase 0.1 to make the ingestion contract explicit:
+
+- Vendor endpoint spec contract (not yet wired into the CLI loader): `config/vendors/fx_providers.json`
+- Sidecar metadata schema contract: `docs/infra/phase0/schemas/raw_market_ingestion.yaml`
+- Secrets scaffolding:
+  - Template (committed): `config/secrets/fx_api_keys.example.json`
+  - Notes: `config/secrets/README.md`
+  - Local-only secrets file (NOT committed): `config/secrets/fx_api_keys.json`
+
+Secrets should be provided via environment variables in CI/production. For local development, copy the example:
+
+```bash
+cp config/secrets/fx_api_keys.example.json config/secrets/fx_api_keys.json
+```
+
+Then populate the values.
+
 ## Provider YAML format (what the current code supports)
 
 The downloader expects a YAML file with a top-level `providers:` list.
@@ -66,9 +95,11 @@ Minimal example:
 ```yaml
 providers:
   - name: dukascopy
+    artifact_type: tick
     supports_pairs: ["EURUSD", "USDJPY"]
     url_template: "https://example.invalid/{pair}/{year}/{month}/{day}.bin"
-    save_path: "raw/dukascopy/{pair}/{year}/{month}/{day}"
+    # save_path is optional; if omitted, a deterministic default is used.
+    # save_path: "data/raw/fx/tick/dukascopy/{pair}/{year}/{month}/{day}"
     method: GET
     poll_interval: 3600
     auth: {}
@@ -78,10 +109,16 @@ Supported fields:
 
 - `name` (required)
 - `supports_pairs` (required): list of strings; the current implementation iterates directly over this list
-- `url_template` (required): must be compatible with `.format(pair=..., year=..., month=..., day=...)`
-- `save_path` (required): used to build the S3 key prefix via `.format(pair=..., year=..., month=..., day=...)`
+- `artifact_type` (recommended): `tick` or `ohlcv` (if absent, the code falls back to `type`)
+- `url_template` (required): supports `.format(pair=..., base=..., quote=..., year=..., month=..., day=...)`
+  - `pair` accepts `EURUSD` and `EUR/USD`
+- `save_path` (optional): used to build the S3 key prefix via `.format(...)`
+  - If omitted, the downloader uses a deterministic default:
+    - `data/raw/fx/<artifact_type>/<provider>/<pair>/<YYYY>/<MM>/<DD>`
 - `method` (optional): defaults to `GET`
 - `poll_interval` (optional): overrides global `POLL_INTERVAL_SECONDS`
+- `params` (optional): mapping used for query params and template vars
+  - `api_key_env`: if set, injects `{api_key}` template var from the named environment variable
 - `auth` (optional):
   - `type: header_api_key` with `header_env` + optional `header_name`
   - `type: basic` with `user_env` + `pass_env`
@@ -89,7 +126,6 @@ Supported fields:
 Important limitations (as of today):
 
 - “Enabled/disabled” flags in YAML are not honored; if a provider appears in the list it will be processed.
-- URL templates that require other placeholders (e.g. `{api_key}`) are not supported by the current downloader and will raise formatting errors.
 
 ## CLI
 
@@ -129,6 +165,16 @@ Run integration tests in Docker (recommended / most reproducible):
 make test SUITE=integration RUNTIME=docker
 ```
 
+This uses the repository root `docker-compose.test.yml`.
+
+GitHub Actions also runs a dockerized integration job using `docker/docker-compose.test.yml`. That compose file runs pytest via:
+
+```bash
+uv run --dev -- python -m pytest
+```
+
+This avoids failures where `pytest` is not on `PATH` inside the container.
+
 Run only unit tests (no Docker):
 
 ```bash
@@ -151,4 +197,10 @@ uv run --dev -- python -m pytest tests/unit -vv
 
 - S3 uploads are performed via `aioboto3` in `qf_downloader.storage.S3Client`.
 - Checksums and dedupe tracking are stored in SQLite via `qf_downloader.db.DownloadDB`.
+
+### Phase 0.1 operational notes
+
+- Sidecar metadata schema: see `docs/infra/phase0/schemas/raw_market_ingestion.yaml`.
+- Runtime-generated roll-up manifest: `pipelines/ingestion/fx/metadata.json` (this file can be created/updated during ingestion runs).
+- Failure recording: the SQLite DB includes a `fetch_failures` table keyed by `(provider, pair, date, artifact_type)`.
 
