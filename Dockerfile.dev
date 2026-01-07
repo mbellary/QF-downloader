@@ -24,15 +24,12 @@ RUN uv export --format requirements-txt > requirements.txt && \
     uv pip install --system -r requirements.txt
 
 
-# Copy project source
+# Copy project (src + configs + pipelines) so script entrypoints can be installed.
 COPY src ./src
 
-# Install the package itself (creates "worker" CLI script)
+# Install the project in editable mode so CLI scripts exist, and source changes
+# via bind-mounts are reflected without rebuilding.
 #RUN uv pip install --system --editable .
 
-# Default entrypoint defined in pyproject.toml: [project.scripts]
-ENTRYPOINT ["worker"]
-
-# Add source to module path for src-format layout
-ENV PYTHONPATH="/qf-downloader/src:${PYTHONPATH}"
-ENV UV_PROJECT_ENVIRONMENT="/qf-downloader/.venv"
+# Default to running commands through uv so README commands work unchanged.
+ENTRYPOINT ["uv", "run", "--dev"]

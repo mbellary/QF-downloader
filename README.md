@@ -188,6 +188,46 @@ You can also use the script entrypoint that exposes the Typer app:
 uv run worker_historical -- backfill --provider-name dukascopy --years 3
 ```
 
+## Docker (development)
+
+You can run the same CLI commands from this README in Docker using the dev
+compose stack in `docker-compose.yml`.
+
+Bring up LocalStack (and optionally Prometheus + the app container):
+
+```bash
+docker compose up -d localstack
+docker compose up -d prometheus qf_app
+```
+
+Run the module CLI (equivalent to `uv run -- python -m qf_downloader.cli ...`):
+
+```bash
+docker compose run --rm qf_app -- python -m qf_downloader.cli list-providers \
+  --providers-file /qf-downloader/config/vendors/fx_providers.json
+```
+
+Run incremental polling (equivalent to `uv run worker_incremental -- ...`):
+
+```bash
+docker compose run --rm qf_app worker_incremental -- \
+  --providers-file /qf-downloader/config/vendors/fx_providers.json
+```
+
+Run historical backfill (equivalent to `uv run worker_historical -- backfill ...`):
+
+```bash
+docker compose run --rm qf_app worker_historical -- backfill \
+  --provider-name dukascopy --years 3 \
+  --providers-file /qf-downloader/config/vendors/fx_providers.json
+```
+
+Stop the dev stack:
+
+```bash
+docker compose down
+```
+
 ## LocalStack (integration tests)
 
 The integration suite uses LocalStack for S3 + DynamoDB.
