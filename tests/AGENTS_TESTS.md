@@ -25,13 +25,13 @@ This project uses:
 ### 1. Prerequisites
 
 - Python version per `pyproject.toml` (currently **>= 3.13**)
-- Recommended: `Makefile`
+- Recommended: `Makefile.test`
 
 ### 2. Test Setup
 - Sync dependencies and Ensures pytest is available
 
 ```bash
-make setup
+make -f Makefile.test setup
 ```
 
 ### 3. Run Formatting and lint checks
@@ -39,38 +39,38 @@ make setup
 - Verify Lint is clean.
 
 ```bash
-make check
+make -f Makefile.test check
 ```
 - Runs `format-check` + `lint` + `test` (respects `SUITE` and `RUNTIME`)
 🚫 CI will fail if formatting or lint errors exist
 
 ### 4. Run Unit Tests
 ```bash
-make test SUITE=unit
+make -f Makefile.test test SUITE=unit
 ```
 - Runs unit tests
 
 ### 5. Run Integration Tests with docker
 ```bash
-make test SUITE=integration RUNTIME=docker
+make -f Makefile.test test SUITE=integration RUNTIME=docker
 ```
 - Run integration tests in the docker container
 
 #### 6. Make Coverage
 ```bash
-make coverage
+make -f Makefile.test coverage
 ```
-- Runs `make test WITH_COVERAGE=true` (adds terminal coverage report + `coverage.xml`)
+- Runs `make -f Makefile.test test WITH_COVERAGE=true` (adds terminal coverage report + `coverage.xml`)
 
 ### 7. Stop dockerized services
 ```bash
-make teardown
+make -f Makefile.test teardown
 ```
 - Stops dockerized stack (if `RUNTIME=docker`) and removes common artifacts
 
 ### 8. Clean test artifacts
 ```bash
-make clean
+make -f Makefile.test clean
 ```
  - Removes `.pytest_cache`, `.coverage`, `coverage.xml`, and `.venv`
 
