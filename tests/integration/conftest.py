@@ -12,7 +12,8 @@ from botocore.exceptions import ClientError
 
 def _default_localstack_url() -> str:
     # Host-mode default. Docker-mode should set LOCALSTACK_URL explicitly.
-    return os.environ.get("LOCALSTACK_URL", "http://localhost:4566")
+    # Prefer 127.0.0.1 over localhost to avoid IPv6/::1 resolution issues on some hosts.
+    return os.environ.get("LOCALSTACK_URL", "http://127.0.0.1:4566")
 
 
 def _endpoint_hostport(url: str) -> str:
@@ -30,7 +31,11 @@ def _wait_for_localstack(
     aws_secret_access_key: str,
     timeout_seconds: float = 30.0,
 ) -> None:
-    client_config = Config(connect_timeout=1, read_timeout=2, retries={"max_attempts": 1})
+    client_config = Config(
+        connect_timeout=3,
+        read_timeout=10,
+        retries={"max_attempts": 3, "mode": "standard"},
+    )
     s3 = boto3.client(
         "s3",
         region_name=region,
@@ -61,7 +66,7 @@ def _ensure_dynamodb_table(
     *,
     dynamodb,
     table: str,
-    timeout_seconds: float = 30.0,
+    timeout_seconds: float = 120.0,
 ) -> None:
     deadline = time.monotonic() + timeout_seconds
     last_exc: Exception | None = None
@@ -89,7 +94,7 @@ def _ensure_dynamodb_table(
             # Wait until the table is usable. This can race on startup.
             dynamodb.get_waiter("table_exists").wait(
                 TableName=table,
-                WaiterConfig={"Delay": 1, "MaxAttempts": 10},
+                WaiterConfig={"Delay": 2, "MaxAttempts": 60},
             )
             return
         except Exception as exc:  # noqa: BLE001
@@ -160,7 +165,11 @@ def localstack_resources(localstack_env):
     bucket = localstack_env["bucket"]
     table = localstack_env["table"]
 
-    client_config = Config(connect_timeout=1, read_timeout=5, retries={"max_attempts": 1})
+    client_config = Config(
+        connect_timeout=3,
+        read_timeout=30,
+        retries={"max_attempts": 3, "mode": "standard"},
+    )
     s3 = boto3.client(
         "s3",
         region_name=region,
