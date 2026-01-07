@@ -116,3 +116,13 @@ async def _do_backfill(provider, start, end):
     await db.close()
 
     print("\n✅ Backfill complete.\n")
+
+
+def main() -> None:
+    """Module entrypoint for `python -m qf_downloader.cli`."""
+
+    app()
+
+
+if __name__ == "__main__":
+    main()
