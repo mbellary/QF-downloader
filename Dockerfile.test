@@ -26,4 +26,4 @@ COPY . .
 # NO pip install -e
 # NO second dependency install
 
-CMD ["pytest", "-q"]
+CMD ["uv", "run", "--dev", "--", "python", "-m", "pytest", "-q"]

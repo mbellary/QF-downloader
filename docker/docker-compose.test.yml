@@ -5,9 +5,7 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile.test
-    command: ["pytest", "tests/integration", "-m", "docker", "-vv"]
-    volumes:
-      - ../:/app
+    command: ["uv", "run", "--dev", "--", "python", "-m", "pytest", "tests/integration", "-m", "docker", "-vv"]
     environment:
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
