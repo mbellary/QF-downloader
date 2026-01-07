@@ -54,7 +54,7 @@ Below is an inventory of modules and artifacts that will be affected.
 - `src/qf_downloader/providers.yaml`
 
   - Current functionality: Mixed list of FX and macro providers.
-  - Impact: Should not be the canonical contract for Phase 0.1 because it mixes tasks; Phase 0.1 will introduce a separate canonical FX vendor spec under `config/vendors/`.
+  - Impact: Not the canonical contract for Phase 0.1 because it mixes tasks; Phase 0.1 uses `config/vendors/fx_providers.json` as the canonical vendor spec.
 
 ## Existing tests
 
@@ -70,7 +70,7 @@ Below is an inventory of modules and artifacts that will be affected.
 
 ## New files / artifacts (Phase 0.1)
 
-- `config/vendors/fx_providers.json` (or `config/vendors/fx_providers.yaml`)
+- `config/vendors/fx_providers.json`
 
   - Purpose: Canonical Phase 0.1 FX vendor spec (endpoints and storage rules).
 
@@ -78,9 +78,9 @@ Below is an inventory of modules and artifacts that will be affected.
 
   - Purpose: Local-only secrets file referenced by config; must not be committed.
 
-- `src/qf_downloader/fx_provider_config.py` (new)
+- `src/qf_downloader/provider_config.py` (new)
 
-  - Purpose: Typed parsing and validation of Phase 0.1 provider specs, with explicit support for placeholders, params, and artifact_type.
+  - Purpose: Parsing and normalization of Phase 0.1 provider specs, with explicit support for placeholders, params, and artifact_type.
 
 - `src/qf_downloader/metadata.py` (new)
 
@@ -339,7 +339,7 @@ Keep UX minimal and avoid introducing new pages/flows:
 - Maintain existing `backfill` command shape, but add an explicit flag to select the Phase 0.1 vendor spec:
 
   - `--providers-file` remains supported.
-  - If omitted, Phase 0.1 FX commands default to `config/vendors/fx_providers.yaml`.
+  - If omitted, Phase 0.1 FX commands default to `config/vendors/fx_providers.json`.
 
 - Ensure macro providers are not ingested by Phase 0.1 commands.
 

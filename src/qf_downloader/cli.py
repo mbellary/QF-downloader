@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 
 import click
 import typer
-import yaml
 
 from .config import (
     AWS_ACCESS_KEY_ID,
@@ -17,6 +16,7 @@ from .config import (
 from .db import DownloadDB
 from .downloader import ProviderDownloader
 from .logger import get_logger
+from .provider_config import load_providers_config
 from .storage import S3Client
 
 logger = get_logger("downloader.cli")
@@ -35,8 +35,7 @@ cli = click.Command(name="qf_downloader")
 @app.command()
 def list_providers(providers_file: str = None):
     pf = providers_file or PROVIDERS_FILE
-    with open(pf, "r") as fh:
-        providers_cfg = yaml.safe_load(fh)
+    providers_cfg = load_providers_config(pf)
 
     print("\nAvailable Providers:\n")
     for p in providers_cfg.get("providers", []):
@@ -67,7 +66,8 @@ async def _run_loop(providers_cfg):
 
             await asyncio.sleep(interval)
 
-    tasks = [asyncio.create_task(provider_poll(p)) for p in providers_cfg["providers"]]
+    providers = [p for p in providers_cfg.get("providers", []) if p.get("enabled", True)]
+    tasks = [asyncio.create_task(provider_poll(p)) for p in providers]
 
     try:
         await asyncio.gather(*tasks)
@@ -79,8 +79,7 @@ async def _run_loop(providers_cfg):
 def run(providers_file: str = None):
     """Run incremental polling for all providers."""
     pf = providers_file or PROVIDERS_FILE
-    with open(pf, "r") as fh:
-        providers_cfg = yaml.safe_load(fh)
+    providers_cfg = load_providers_config(pf)
     asyncio.run(_run_loop(providers_cfg))
 
 
@@ -93,12 +92,11 @@ def backfill(provider_name: str, years: int = 5, providers_file: str = None):
     Download historical data for the given provider for last N years.
     """
     pf = providers_file or PROVIDERS_FILE
-    with open(pf, "r") as fh:
-        providers_cfg = yaml.safe_load(fh)
+    providers_cfg = load_providers_config(pf)
 
     provider = next((p for p in providers_cfg["providers"] if p["name"] == provider_name), None)
     if not provider:
-        raise RuntimeError(f"Provider '{provider_name}' not found in providers.yaml")
+        raise RuntimeError(f"Provider '{provider_name}' not found in providers config")
 
     start = datetime.utcnow() - timedelta(days=years * 365)
     end = datetime.utcnow()

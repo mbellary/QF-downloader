@@ -59,6 +59,8 @@ class ProviderDownloader:
         mm = day.strftime("%m")
         dd = day.strftime("%d")
         date = f"{yyyy}{mm}{dd}"
+        start_date = day.strftime("%Y-%m-%d")
+        end_date = start_date
 
         artifact_type = self.provider.get("artifact_type") or self.provider.get("type")
         if artifact_type:
@@ -78,6 +80,8 @@ class ProviderDownloader:
             "year": yyyy,
             "month": mm,
             "day": dd,
+            "start_date": start_date,
+            "end_date": end_date,
         }
 
         params_cfg = self.provider.get("params") or {}
@@ -85,6 +89,10 @@ class ProviderDownloader:
             api_key_env = params_cfg.get("api_key_env")
             if api_key_env and "api_key" not in template_vars:
                 template_vars["api_key"] = os.getenv(str(api_key_env), "")
+
+            access_key_env = params_cfg.get("access_key_env")
+            if access_key_env and "access_key" not in template_vars:
+                template_vars["access_key"] = os.getenv(str(access_key_env), "")
 
         try:
             url = url_template.format(**template_vars)
@@ -120,6 +128,19 @@ class ProviderDownloader:
                     continue
                 if isinstance(value, str):
                     params[key] = value.format(**template_vars)
+
+        # Query API key auth support (legacy providers_single_pair.yaml)
+        auth_cfg = self.provider.get("auth", {}) or {}
+        if isinstance(auth_cfg, dict) and auth_cfg.get("type") == "query_api_key":
+            api_key_env = auth_cfg.get("api_key_env")
+            key_name = auth_cfg.get("key_param_name")
+            if not key_name:
+                # common fallbacks
+                key_name = "apikey"
+            if api_key_env:
+                api_key_value = os.getenv(str(api_key_env), "")
+                if api_key_value:
+                    params[str(key_name)] = api_key_value
 
         # ---------------------------------------------------------
         # FETCH
@@ -220,6 +241,8 @@ class ProviderDownloader:
 
     @staticmethod
     def _split_pair(pair: str) -> Tuple[str, str]:
+        if pair.upper() == "ALL":
+            return "", ""
         if "/" in pair:
             base, quote = pair.split("/", 1)
             return base, quote

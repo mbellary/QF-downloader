@@ -81,7 +81,7 @@ Common env vars:
 - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`: required for LocalStack, optional in production (IAM role / AWS profile supported)
 - `LOCALSTACK_URL`: e.g. `http://localhost:4566`
 - `DB_PATH`: defaults to `./data/downloads.db`
-- `PROVIDERS_FILE`: path to providers YAML (recommended: `./src/qf_downloader/providers.yaml`)
+- `PROVIDERS_FILE`: path to providers config (recommended: `./config/vendors/fx_providers.json`)
 - `POLL_INTERVAL_SECONDS`: default poll interval for providers without `poll_interval`
 
 Note: the code has a placeholder default for `PROVIDERS_FILE` in `qf_downloader.config`; in practice you should set `PROVIDERS_FILE` or pass `--providers-file`.
@@ -90,7 +90,7 @@ Note: the code has a placeholder default for `PROVIDERS_FILE` in `qf_downloader.
 
 These artifacts are added as part of Phase 0.1 to make the ingestion contract explicit:
 
-- Vendor endpoint spec contract (not yet wired into the CLI loader): `config/vendors/fx_providers.json`
+- Vendor endpoint spec contract (wired into the CLI/runtime loader): `config/vendors/fx_providers.json`
 - Sidecar metadata schema contract: `docs/infra/phase0/schemas/raw_market_ingestion.yaml`
 - Secrets scaffolding:
   - Template (committed): `config/secrets/fx_api_keys.example.json`
@@ -105,23 +105,34 @@ cp config/secrets/fx_api_keys.example.json config/secrets/fx_api_keys.json
 
 Then populate the values.
 
-## Provider YAML format (what the current code supports)
+## Provider config format (JSON-first)
 
-The downloader expects a YAML file with a top-level `providers:` list.
+The downloader expects a config file with a top-level `providers` list.
+
+Preferred format is JSON (the canonical contract): `config/vendors/fx_providers.json`.
+
+Legacy YAML is still loadable for backwards compatibility, but is considered deprecated:
+
+- `src/qf_downloader/providers.yaml`
+- `src/qf_downloader/providers_single_pair.yaml`
 
 Minimal example:
 
-```yaml
-providers:
-  - name: dukascopy
-    artifact_type: tick
-    supports_pairs: ["EURUSD", "USDJPY"]
-    url_template: "https://example.invalid/{pair}/{year}/{month}/{day}.bin"
-    # save_path is optional; if omitted, a deterministic default is used.
-    # save_path: "data/raw/fx/tick/dukascopy/{pair}/{year}/{month}/{day}"
-    method: GET
-    poll_interval: 3600
-    auth: {}
+```json
+{
+  "providers": [
+    {
+      "name": "dukascopy",
+      "enabled": true,
+      "artifact_type": "tick",
+      "supports_pairs": ["EURUSD", "USDJPY"],
+      "url_template": "https://example.invalid/{pair}/{year}/{month}/{day}.bin",
+      "method": "GET",
+      "auth": {},
+      "params": {}
+    }
+  ]
+}
 ```
 
 Supported fields:
@@ -131,6 +142,8 @@ Supported fields:
 - `artifact_type` (recommended): `tick` or `ohlcv` (if absent, the code falls back to `type`)
 - `url_template` (required): supports `.format(pair=..., base=..., quote=..., year=..., month=..., day=...)`
   - `pair` accepts `EURUSD` and `EUR/USD`
+- Additional supported template vars:
+  - `start_date` / `end_date` in `YYYY-MM-DD` format
 - `save_path` (optional): used to build the S3 key prefix via `.format(...)`
   - If omitted, the downloader uses a deterministic default:
     - `data/raw/fx/<artifact_type>/<provider>/<pair>/<YYYY>/<MM>/<DD>`
@@ -141,10 +154,11 @@ Supported fields:
 - `auth` (optional):
   - `type: header_api_key` with `header_env` + optional `header_name`
   - `type: basic` with `user_env` + `pass_env`
+  - `type: query_api_key` with `api_key_env` + optional `key_param_name` (defaults to `apikey`)
 
-Important limitations (as of today):
+Notes:
 
-- “Enabled/disabled” flags in YAML are not honored; if a provider appears in the list it will be processed.
+- The CLI and runtime now honor `enabled: false` and skip disabled providers.
 
 ## CLI
 
@@ -153,19 +167,19 @@ The CLI is implemented with Typer in `qf_downloader.cli`.
 List providers:
 
 ```bash
-uv run -- python -m qf_downloader.cli list-providers --providers-file src/qf_downloader/providers.yaml
+uv run -- python -m qf_downloader.cli list-providers --providers-file config/vendors/fx_providers.json
 ```
 
 Run incremental polling (infinite loop):
 
 ```bash
-uv run worker_incremental -- --providers-file src/qf_downloader/providers.yaml
+uv run worker_incremental -- --providers-file config/vendors/fx_providers.json
 ```
 
 Run a bounded historical backfill for a single provider:
 
 ```bash
-uv run -- python -m qf_downloader.cli backfill --provider-name dukascopy --years 3 --providers-file src/qf_downloader/providers.yaml
+uv run -- python -m qf_downloader.cli backfill --provider-name dukascopy --years 3 --providers-file config/vendors/fx_providers.json
 ```
 
 You can also use the script entrypoint that exposes the Typer app:

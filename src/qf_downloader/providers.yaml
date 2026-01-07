@@ -1,3 +1,7 @@
+# DEPRECATED: legacy provider config (YAML).
+# Canonical config is now JSON-first: config/vendors/fx_providers.json
+# This file is kept for reference only and is not used by default.
+
 version: "2.0.0"
 description: "Multi-pair data provider configuration for MT5 ML/EA system."
 

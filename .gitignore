@@ -24,3 +24,7 @@ config/secrets/*.json
 !config/secrets/*.example.json
 
 .vscode/
+
+# Coverage artifacts
+.coverage
+coverage.xml

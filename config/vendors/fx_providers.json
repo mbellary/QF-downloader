@@ -1,6 +1,6 @@
 {
-  "version": "0.1.0",
-  "description": "Phase 0.1 canonical FX vendor spec (raw market ingestion only).",
+  "version": "0.2.0",
+  "description": "Phase 0.1 canonical provider spec for raw market ingestion (JSON-first).",
   "supported_pairs": {
     "majors": [
       "EURUSD",
@@ -41,6 +41,28 @@
       "format": "dukascopy_bi5"
     },
     {
+      "name": "truefx",
+      "enabled": false,
+      "artifact_type": "tick",
+      "supports_pairs": [
+        "EURUSD",
+        "USDJPY"
+      ],
+      "url_template": "https://www.truefx.com/api/data/{pair}",
+      "method": "GET",
+      "auth": {
+        "type": "header_api_key",
+        "header_env": "TRUEFX_API_KEY",
+        "header_name": "x-api-key"
+      },
+      "params": {},
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    },
+    {
       "name": "alpha_vantage_fx",
       "enabled": false,
       "artifact_type": "ohlcv",
@@ -55,6 +77,337 @@
         "api_key_env": "ALPHA_VANTAGE_API_KEY"
       },
       "auth": {},
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    },
+    {
+      "name": "econdb",
+      "enabled": true,
+      "artifact_type": "macro",
+      "supports_pairs": [
+        "ALL"
+      ],
+      "url_template": "https://www.econdb.com/api/macro/events/?country=US,EU",
+      "method": "GET",
+      "auth": {},
+      "params": {},
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    },
+    {
+      "name": "fmp_stable_economic_calendar",
+      "enabled": true,
+      "artifact_type": "macro",
+      "supports_pairs": [
+        "ALL"
+      ],
+      "url_template": "https://financialmodelingprep.com/stable/economic-calendar?apikey={api_key}",
+      "method": "GET",
+      "auth": {},
+      "params": {
+        "api_key_env": "FMP_API_KEY"
+      },
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    },
+    {
+      "name": "fmp_economic_calendar_range",
+      "enabled": false,
+      "artifact_type": "macro",
+      "supports_pairs": [
+        "ALL"
+      ],
+      "url_template": "https://financialmodelingprep.com/api/v3/economic_calendar?from={start_date}&to={end_date}&apikey={api_key}",
+      "method": "GET",
+      "auth": {},
+      "params": {
+        "api_key_env": "FMP_API_KEY",
+        "start_date": "{start_date}",
+        "end_date": "{end_date}"
+      },
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    },
+    {
+      "name": "fx_exchangerate_host_hourly",
+      "enabled": false,
+      "artifact_type": "ohlcv",
+      "supports_pairs": [
+        "EURUSD"
+      ],
+      "url_template": "https://api.exchangerate.host/timeseries",
+      "method": "GET",
+      "auth": {
+        "type": "query_api_key",
+        "key_param_name": "access_key",
+        "api_key_env": "FX_API_KEY"
+      },
+      "params": {
+        "base": "EUR",
+        "symbols": "USD",
+        "start_date": "{start_date}",
+        "end_date": "{end_date}"
+      },
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    },
+    {
+      "name": "fx_frankfurter_daily",
+      "enabled": false,
+      "artifact_type": "ohlcv",
+      "supports_pairs": [
+        "EURUSD"
+      ],
+      "url_template": "https://api.frankfurter.app/{start_date}..{end_date}",
+      "method": "GET",
+      "auth": {
+        "type": "none"
+      },
+      "params": {
+        "from": "EUR",
+        "to": "USD"
+      },
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    },
+    {
+      "name": "fx_twelvedata_hourly",
+      "enabled": false,
+      "artifact_type": "ohlcv",
+      "supports_pairs": [
+        "EURUSD"
+      ],
+      "url_template": "https://api.twelvedata.com/time_series",
+      "method": "GET",
+      "auth": {
+        "type": "query_api_key",
+        "key_param_name": "apikey",
+        "api_key_env": "TWELVEDATA_API_KEY"
+      },
+      "params": {
+        "symbol": "EUR/USD",
+        "interval": "1h",
+        "outputsize": "5000"
+      },
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    },
+    {
+      "name": "fx_tradermade_hourly",
+      "enabled": false,
+      "artifact_type": "ohlcv",
+      "supports_pairs": [
+        "EURUSD"
+      ],
+      "url_template": "https://marketdata.tradermade.com/api/v1/live",
+      "method": "GET",
+      "auth": {
+        "type": "query_api_key",
+        "key_param_name": "api_key",
+        "api_key_env": "TMADE_API_KEY"
+      },
+      "params": {
+        "currency": "EURUSD"
+      },
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    },
+    {
+      "name": "fx_financialmodelingprep_daily",
+      "enabled": false,
+      "artifact_type": "ohlcv",
+      "supports_pairs": [
+        "EURUSD"
+      ],
+      "url_template": "https://financialmodelingprep.com/api/v3/forex/EURUSD",
+      "method": "GET",
+      "auth": {
+        "type": "query_api_key",
+        "key_param_name": "apikey",
+        "api_key_env": "FMP_API_KEY"
+      },
+      "params": {},
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    },
+    {
+      "name": "econ_tradingeconomics_eu_us",
+      "enabled": false,
+      "artifact_type": "macro",
+      "supports_pairs": [
+        "ALL"
+      ],
+      "url_template": "https://api.tradingeconomics.com/calendar",
+      "method": "GET",
+      "auth": {
+        "type": "none"
+      },
+      "params": {
+        "country": "euro area,united states",
+        "importance": "2,3",
+        "c": "guest:guest"
+      },
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    },
+    {
+      "name": "econ_fred_interest_rates",
+      "enabled": false,
+      "artifact_type": "macro",
+      "supports_pairs": [
+        "ALL"
+      ],
+      "url_template": "https://api.stlouisfed.org/fred/series/observations",
+      "method": "GET",
+      "auth": {
+        "type": "query_api_key",
+        "key_param_name": "api_key",
+        "api_key_env": "FRED_API_KEY"
+      },
+      "params": {
+        "series_id": "FEDFUNDS",
+        "file_type": "json"
+      },
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    },
+    {
+      "name": "econ_fred_eu_interest_rates",
+      "enabled": false,
+      "artifact_type": "macro",
+      "supports_pairs": [
+        "ALL"
+      ],
+      "url_template": "https://api.stlouisfed.org/fred/series/observations",
+      "method": "GET",
+      "auth": {
+        "type": "query_api_key",
+        "key_param_name": "api_key",
+        "api_key_env": "FRED_API_KEY"
+      },
+      "params": {
+        "series_id": "IRSTCI01EZM156N",
+        "file_type": "json"
+      },
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    },
+    {
+      "name": "econ_fred_cpi_us",
+      "enabled": false,
+      "artifact_type": "macro",
+      "supports_pairs": [
+        "ALL"
+      ],
+      "url_template": "https://api.stlouisfed.org/fred/series/observations",
+      "method": "GET",
+      "auth": {
+        "type": "query_api_key",
+        "key_param_name": "api_key",
+        "api_key_env": "FRED_API_KEY"
+      },
+      "params": {
+        "series_id": "CPIAUCSL",
+        "file_type": "json"
+      },
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    },
+    {
+      "name": "econ_fred_cpi_eu",
+      "enabled": false,
+      "artifact_type": "macro",
+      "supports_pairs": [
+        "ALL"
+      ],
+      "url_template": "https://api.stlouisfed.org/fred/series/observations",
+      "method": "GET",
+      "auth": {
+        "type": "query_api_key",
+        "key_param_name": "api_key",
+        "api_key_env": "FRED_API_KEY"
+      },
+      "params": {
+        "series_id": "CPALTT01EZM661N",
+        "file_type": "json"
+      },
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "json"
+    },
+    {
+      "name": "econ_oecd_gdp_us_eu",
+      "enabled": false,
+      "artifact_type": "macro",
+      "supports_pairs": [
+        "ALL"
+      ],
+      "url_template": "https://stats.oecd.org/SDMX-JSON/data/DP_LIVE/.GDP.TOT.A/all?contentType=csv",
+      "method": "GET",
+      "auth": {
+        "type": "none"
+      },
+      "params": {},
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "csv"
+    },
+    {
+      "name": "econ_ecb_policy_rate",
+      "enabled": false,
+      "artifact_type": "macro",
+      "supports_pairs": [
+        "ALL"
+      ],
+      "url_template": "https://data-api.ecb.europa.eu/service/data/FM.M.U2.EUR.4F.KR.MRR_FR.LEV",
+      "method": "GET",
+      "auth": {
+        "type": "none"
+      },
+      "params": {},
       "retry": {
         "max_attempts": 5,
         "backoff": "exponential"

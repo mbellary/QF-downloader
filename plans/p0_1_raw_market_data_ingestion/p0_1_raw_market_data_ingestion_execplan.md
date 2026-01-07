@@ -91,7 +91,7 @@ Ensure raw market data is ingested once, timestamped once, and never reinterpret
 - Observation: The Quant Q0.1 spec file at `docs/quant/return_calculation.yaml` is JSON content stored in a `.yaml` file. YAML 1.2 parsers can load JSON, so `yaml.safe_load` is acceptable, but this should be called out explicitly in code/docstrings.
   Evidence: file begins with `{` and contains JSON object keys.
 
-- Observation: Current `src/qf_downloader/providers.yaml` mixes FX tick/OHLCV providers and macro providers. Phase 0.1 should scope to FX market ingestion; macro ingestion belongs to Task 0.2.
+- Observation: Current `src/qf_downloader/providers.yaml` mixes FX tick/OHLCV providers and macro providers. Canonical Phase 0.1 config is now `config/vendors/fx_providers.json`; legacy YAML is deprecated.
   Evidence: providers include `econdb` and `fmp` entries of type `macro`.
 
 ## Decision Log
@@ -124,7 +124,7 @@ Key modules:
 - `src/qf_downloader/db.py`: SQLite ledger for downloaded artifacts and a `fetch_status` table for last successful fetch timestamps.
 - `src/qf_downloader/storage.py`: S3 client wrapper using `aioboto3`, supporting LocalStack when `APP_ENV=localstack`.
 - `src/qf_downloader/s3_indexer.py`: DynamoDB indexer storing (pair, provider, date, s3_key) records.
-- `src/qf_downloader/providers.yaml`: current provider definitions used by default by the CLI.
+- `config/vendors/fx_providers.json`: canonical provider definitions used by default by the CLI.
 
 Quant contract dependency:
 
