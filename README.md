@@ -1,7 +1,7 @@
 # QF-downloader
 
-[![CI](https://github.com/mbellary/QF-downloader/actions/workflows/full_pipeline.yml/badge.svg?branch=main)](https://github.com/mbellary/QF-downloader/actions/workflows/full_pipeline.yml)
-[![codecov](https://codecov.io/gh/mbellary/QF-downloader/branch/main/graph/badge.svg)](https://codecov.io/gh/mbellary/QF-downloader)
+[![Run Tests](https://img.shields.io/github/actions/workflow/status/mbellary/QF-downloader/full_pipeline.yml?branch=main&label=Run%20Tests)](https://github.com/mbellary/QF-downloader/actions/workflows/full_pipeline.yml)
+[![codecov](https://codecov.io/gh/mbellary/QF-downloader/graph/badge.svg?branch=main)](https://codecov.io/gh/mbellary/QF-downloader)
 ![Python](https://img.shields.io/badge/python-%E2%89%A53.13-blue)
 
 Production-oriented, async ingestion workers for downloading daily provider payloads, deduplicating via a local SQLite ledger, and uploading immutable raw artifacts to S3.
