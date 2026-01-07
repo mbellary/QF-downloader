@@ -1,8 +1,14 @@
 # QF-downloader
 
-Async downloader workers for ingesting daily provider payloads, deduplicating via a local SQLite ledger, and uploading artifacts to S3.
+[![CI](https://github.com/mbellary/QF-downloader/actions/workflows/full_pipeline.yml/badge.svg?branch=main)](https://github.com/mbellary/QF-downloader/actions/workflows/full_pipeline.yml)
+[![codecov](https://codecov.io/gh/mbellary/QF-downloader/branch/main/graph/badge.svg)](https://codecov.io/gh/mbellary/QF-downloader)
+![Python](https://img.shields.io/badge/python-%E2%89%A53.13-blue)
 
-Phase 0.1 adds a deterministic raw FX ingestion contract:
+Production-oriented, async ingestion workers for downloading daily provider payloads, deduplicating via a local SQLite ledger, and uploading immutable raw artifacts to S3.
+
+## What this provides (Phase 0.1)
+
+Phase 0.1 adds a deterministic **raw FX ingestion contract**:
 
 - Deterministic partitioning by `artifact_type` (`tick` vs `ohlcv`)
 - URL templating supports `{pair}` and `{base}`/`{quote}` placeholders
@@ -11,7 +17,7 @@ Phase 0.1 adds a deterministic raw FX ingestion contract:
 - No silent drops: fetch failures are persisted in SQLite
 - DynamoDB indexing optionally includes `artifact_type` in the partition key
 
-This repository implements a concrete downloader pipeline in `qf_downloader.downloader.ProviderDownloader`:
+At a high level, the downloader pipeline in `qf_downloader.downloader.ProviderDownloader`:
 
 - For each provider and each configured pair, fetch a URL derived from `url_template` and the current date
 - Compute SHA-256 checksum, skip if already seen for `(provider, pair)`
@@ -27,7 +33,7 @@ This repository implements a concrete downloader pipeline in `qf_downloader.down
 ## Install
 
 ```bash
-uv sync --venv .venv
+make setup
 ```
 
 Then run commands via `uv run ...`.
@@ -45,6 +51,19 @@ Run the full local check (format-check + lint + tests):
 
 ```bash
 make check
+```
+
+Run tests:
+
+```bash
+make test SUITE=unit
+make test SUITE=integration RUNTIME=docker
+```
+
+Generate coverage:
+
+```bash
+make coverage
 ```
 
 ## Configuration
@@ -192,6 +211,17 @@ If you don’t have `make` available, the underlying unit-test command is:
 ```bash
 uv run --dev -- python -m pytest tests/unit -vv
 ```
+
+## CI
+
+GitHub Actions runs:
+
+- Ruff format check
+- Ruff lint
+- Unit tests
+- Dockerized integration tests (LocalStack)
+
+Workflow definition: `.github/workflows/full_pipeline.yml`.
 
 ## Notes
 
