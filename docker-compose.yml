@@ -4,6 +4,9 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     image: qf-downloader:dev
+    environment:
+      APP_ENV: ${APP_ENV:-localstack}
+      LOCALSTACK_URL: http://localstack:4566
     env_file:
       - ./src/qf_downloader/.env.dev
     volumes:

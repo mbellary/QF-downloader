@@ -23,16 +23,19 @@ endif
 # --------------------------------------------------
 # AWS / LocalStack
 # --------------------------------------------------
-AWS_REGION ?= ap-south-1
-S3_BUCKET ?= fx-ml-data
-RAW_FILE_INDEX_TABLE ?= raw_file_index
+AWS_REGION := ap-south-1
+S3_BUCKET := fx-ml-data
+RAW_FILE_INDEX_TABLE := raw_file_index
 AWS := aws
 
 ifeq ($(USE_LOCALSTACK),true)
-AWS_ENDPOINT := --endpoint-url=http://localhost:4566 --no-sign-request
+AWS_ENDPOINT := --endpoint-url=http://localhost:4566
+AWS_REGION_ENV := AWS_DEFAULT_REGION=$(AWS_REGION)
+AWS_CREDS := AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_SESSION_TOKEN=
 else
 AWS_ENDPOINT :=
-AWS_ENV :=
+AWS_REGION_ENV :=
+AWS_CREDS :=
 endif
 
 # --------------------------------------------------
@@ -137,20 +140,25 @@ endif
 create-dynamodb:
 ifeq ($(USE_LOCALSTACK),true)
 	@echo "▶ Ensuring DynamoDB table $(RAW_FILE_INDEX_TABLE) exists"
-	@$(AWS) dynamodb describe-table \
-		--table-name $(RAW_FILE_INDEX_TABLE) \
-		>/dev/null 2>&1 || \
-	$(AWS) dynamodb create-table \
-		--table-name $(RAW_FILE_INDEX_TABLE) \
-		--attribute-definitions \
-			AttributeName=pk,AttributeType=S \
-			AttributeName=sk,AttributeType=S \
-		--key-schema \
-			AttributeName=pk,KeyType=HASH \
-			AttributeName=sk,KeyType=RANGE \
-		--billing-mode PAY_PER_REQUEST \
-		$(AWS_ENDPOINT)
+	@$(AWS_CREDS) $(AWS_REGION_ENV) $(AWS) dynamodb list-tables \
+		$(AWS_ENDPOINT) \
+		--output text \
+		--query 'TableNames' | grep -w $(RAW_FILE_INDEX_TABLE) >/dev/null 2>&1 || \
+	( \
+		echo "▶ Creating DynamoDB table $(RAW_FILE_INDEX_TABLE)"; \
+		$(AWS_CREDS) $(AWS_REGION_ENV) $(AWS) dynamodb create-table \
+			--table-name $(RAW_FILE_INDEX_TABLE) \
+			--attribute-definitions \
+				AttributeName=pk,AttributeType=S \
+				AttributeName=sk,AttributeType=S \
+			--key-schema \
+				AttributeName=pk,KeyType=HASH \
+				AttributeName=sk,KeyType=RANGE \
+			--provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
+			$(AWS_ENDPOINT); \
+	)
 endif
+
 
 .PHONY: infra
 infra: wait-localstack create-s3 create-dynamodb
