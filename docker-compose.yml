@@ -1,23 +1,7 @@
 services:
-  qf_app:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    image: qf-downloader:dev
-    environment:
-      APP_ENV: ${APP_ENV:-localstack}
-      LOCALSTACK_URL: http://localstack:4566
-    env_file:
-      - ./src/qf_downloader/.env.dev
-    volumes:
-      - ./:/qf-downloader
-    depends_on:
-      localstack:
-        condition: service_healthy
-    command: ["sleep", "infinity"]
-
   localstack:
     image: localstack/localstack:latest
+    container_name: localstack-dev
     ports:
       - "4566:4566"
       - "4510-4559:4510-4559"
@@ -38,9 +22,26 @@ services:
 
   prometheus:
     image: prom/prometheus:latest
-    container_name: prometheus
+    container_name: prometheus-dev
     ports:
       - "9090:9090"
     volumes:
       - "./prometheus.yml:/etc/prometheus/prometheus.yml"
+
+  qf-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: qf-app-dev
+    environment:
+      APP_ENV: ${APP_ENV:-localstack}
+      LOCALSTACK_URL: http://localstack:4566
+    env_file:
+      - ./src/qf_downloader/.env.dev
+    volumes:
+      - ./:/qf-downloader
+    depends_on:
+      localstack:
+        condition: service_healthy
+    command: ["sleep", "infinity"]
 

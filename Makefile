@@ -44,7 +44,7 @@ endif
 COMPOSE_FILE ?= docker-compose.yml
 DOCKER_COMPOSE := docker compose
 
-APP_SERVICE := qf_app
+APP_SERVICE := qf-app
 DEPS := localstack
 
 # --------------------------------------------------

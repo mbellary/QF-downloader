@@ -62,6 +62,7 @@ class Settings:
         dp.mkdir(parents=True, exist_ok=True)
         self.download_path = dp
 
+
 # if __name__ == "__main__":
 #     print(CONFIG_DIR)
 #     print(PROVIDERS_FILE)

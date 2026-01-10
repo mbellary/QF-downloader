@@ -1,4 +1,4 @@
-SHELL := /bin/sh
+SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 SELF := $(lastword $(MAKEFILE_LIST))
@@ -18,6 +18,7 @@ UNIT_TEST_PATH ?= tests/unit
 INTEGRATION_TEST_PATH ?= tests/integration
 VENV ?= .venv
 PYTEST_ARGS ?=
+PYTHON ?= python
 
 DOCKER_COMPOSE := docker compose -f $(DOCKER_COMPOSE_FILE)
 
@@ -58,36 +59,17 @@ check:
 	if [ $$STATUS -eq 0 ]; then $(MAKE) -f $(SELF) --no-print-directory lint-fix || STATUS=$$?; fi; \
 	exit $$STATUS
 
+.PHONY: setup
 setup:
-	@echo "[setup] Ensuring Python deps are synced via $(UV)"
-	@set -e; \
-	# Try the modern --venv flag first, fall back to --dev, then to plain sync
-	if $(UV) sync --venv $(VENV) >/dev/null 2>&1; then \
-		echo "[setup] using $(UV) sync --venv $(VENV)"; \
-		$(UV) sync --venv $(VENV); \
-	elif $(UV) sync --dev >/dev/null 2>&1; then \
-		echo "[setup] falling back to $(UV) sync --dev"; \
-		$(UV) sync --dev; \
+	@echo "▶ Setting up virtual environment and dependencies"
+	@if [ ! -d "$(VENV)" ]; then \
+		echo "• Creating virtual environment"; \
+		$(UV) venv $(VENV); \
 	else \
-		echo "[setup] falling back to $(UV) sync"; \
-		$(UV) sync; \
+		echo "• Reusing existing virtual environment"; \
 	fi
-	# Ensure pytest is installable / available in the venv. If missing, create venv and
-	# install dev extras from pyproject.toml
-	if [ -x "$(VENV)/bin/python" ] && "$(VENV)/bin/python" -c 'import pytest' >/dev/null 2>&1; then \
-		echo "[setup] pytest available in $(VENV) (bin)"; \
-	elif [ -x "$(VENV)/Scripts/python" ] && "$(VENV)/Scripts/python" -c 'import pytest' >/dev/null 2>&1; then \
-		echo "[setup] pytest available in $(VENV) (Scripts)"; \
-	else \
-		echo "[setup] pytest not found in venv; creating venv and installing dev deps"; \
-		if [ ! -x "$(VENV)/bin/python" ] && [ ! -x "$(VENV)/Scripts/python" ]; then \
-			python -m venv $(VENV) --upgrade-deps; \
-		fi; \
-		if [ -x "$(VENV)/bin/python" ]; then PYV="$(VENV)/bin/python"; else PYV="$(VENV)/Scripts/python"; fi; \
-		"$${PYV}" -m ensurepip --upgrade >/dev/null 2>&1 || true; \
-		"$${PYV}" -m pip install --upgrade pip setuptools >/dev/null; \
-		"$${PYV}" -m pip install -e '.[dev]'; \
-	fi
+	@echo "• Installing runtime + dev dependencies"
+	@$(UV) pip install --python $(VENV)/bin/python -e ".[dev]"
 
 _runtime-up:
 	@if [ "$(RUNTIME)" = "docker" ]; then \
