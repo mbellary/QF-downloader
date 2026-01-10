@@ -1,6 +1,3 @@
-I overlooked setting up the environment. Can we please setup the environment and update the execution plan. 
-
-
 
 GITHUB_REPO = "https://github.com/mbellary/QF-downloader"
 GITHUB_COLAB = ".github/AGENTS_COLLABORATION.md"
