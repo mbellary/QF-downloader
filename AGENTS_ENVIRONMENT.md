@@ -37,6 +37,8 @@ Update local workspace with remote git changes
 ```bash
 git pull origin main && make -f Makefile.test setup && make -f Makefile.test check && make -f Makefile.test test SUITE=unit
 ```
+If failures occur → fix locally before committing.
+
 
 ## 🔄 Feature Branch Setup
 * See `.github/BRANCH/branch.md` for details on branching
@@ -121,27 +123,6 @@ Rules:
 * All Python source lives under src/qf_downloader/
 
 Agents must preserve this layout.
-
-## 🧹 Developer Setup Checklist
-Run these after installation:
-```bash
-make -f Makefile.test check && make -f Makefile.test test SUITE=unit
-```
-If failures occur → fix locally before committing.
-
-## 🔁 Pre-commit Hook Installation (Strongly Recommended)
-```bash
-uv run pre-commit install
-```
-This ensures:
-
-✔ Ruff auto-formatting
-
-✔ Lint fixes applied
-
-✔ No broken code enters history
-
-🚫 If any check fails locally → PR will fail CI
 
 
 ## 🧠 Rules for AI Agents

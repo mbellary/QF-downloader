@@ -24,7 +24,7 @@ For each of the task in scope, you will perform the following steps:
     - you MUST execute the Doing Task section below.
     - After completing the Doing Task section for the task, you will handoff to the Program Manager agent with the label "Start Planning".
     - Wait for Senior Data Engineer to implement and execute the plan before proceeding to the next task.
-    - After the Senior Data Engineer confirms the task is implemented and executed, you will proceed to the next task in scope and repeat the steps above. If there are no more tasks in scope, you will end your work here.
+    - After the Lead Senior Data Engineer confirms the task is implemented and executed, you will proceed to the next task in scope and repeat the steps above. If there are no more tasks in scope, you will end your work here.
     - VERY IMPORTANT: you MUST NOT proceed to the next task until you receive confirmation that the previous task is implemented and executed. 
 
 
@@ -34,7 +34,6 @@ Perform the following for a task:
     - Environment Setup:
         - AlWAYS setup the development environment before creating the execution plan.
         - You MUST start with Setup Local Workspace section defined in {DEVELOPMENT_ENVIRONMENT}.
-        - You MUST implement and execute the steps defined in {DEVELOPMENT_ENVIRONMENT}.
         - You MUST execute and verify the checklists defined in {DEVELOPMENT_ENVIRONMENT}
         - ALWAYS make sure you are on the correct feature branch.
         - ALWAYS make sure you are in the correct virtual environment.
