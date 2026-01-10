@@ -35,30 +35,7 @@ uv --version
 Update local workspace with remote git changes
 
 ```bash
-git pull origin main && make check && make test SUITE=unit
-```
-
-Install dependencies in editable mode (required for tests + CI):
-
-```bash
-uv pip install -e ".[dev]"
-```
-This will automatically:
-
-✔ Create a .venv/ virtual environment
-
-✔ Install runtime + development dependencies
-
-✔ Expose tools like pytest and ruff
-
-## 🧩 UV Virtual Environment
-Preferred execution pattern:
-```bash
-uv run <command>
-```
-Example:
-```bash
-uv run pytest -v
+git pull origin main && make -f Makefile.test setup && make -f Makefile.test check && make -f Makefile.test test SUITE=unit
 ```
 
 ## 🔄 Feature Branch Setup
@@ -148,7 +125,7 @@ Agents must preserve this layout.
 ## 🧹 Developer Setup Checklist
 Run these after installation:
 ```bash
-make check && make test SUITE=unit
+make -f Makefile.test check && make -f Makefile.test test SUITE=unit
 ```
 If failures occur → fix locally before committing.
 
@@ -164,15 +141,6 @@ This ensures:
 
 ✔ No broken code enters history
 
-## 🔒 CI Parity Requirements
-Local environment must match CI expectations:
-| Requirement            | Verified by           |
-| ---------------------- | --------------------- |
-| Lint clean             | `ruff check`          |
-| No format drift        | `ruff format --check` |
-| Tests passing          | `pytest`              |
-| Coverage XML available | `pytest-cov`          |
-
 🚫 If any check fails locally → PR will fail CI
 
 
@@ -183,12 +151,3 @@ Local environment must match CI expectations:
 * Keep virtual environment inside project root
 * Update this document when environment policy changes
 
-## Summary Commands
-| Action                  | Command                      |
-| ----------------------- | ---------------------------- |
-| Install dev environment | `uv pip install -e ".[dev]"` |
-| Run app                 | `worker World`               |
-| Run tests               | `uv run pytest`              |
-| Lint + auto-fix         | `uv run ruff check . --fix`  |
-| Format code             | `uv run ruff format .`       |
-| Dev Docker run          | `docker compose run dev`     |
