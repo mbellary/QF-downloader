@@ -1,0 +1,32 @@
+{
+  "artifact_type": "tick",
+  "date": "20250110",
+  "hashes": {
+    "sha256": "412ab7a22a15be6237acec63876766e24f6e622dd9e1c28d500efc91ebb985ba"
+  },
+  "ingested_at_utc": "2026-01-10T05:06:19.734872+00:00",
+  "pair": "EURUSD",
+  "provider": "dukascopy",
+  "schema_id": "infra.phase0.raw_market_ingestion",
+  "schema_version": "1.0.0",
+  "source": {
+    "http_method": "GET",
+    "request_headers_redacted": {
+      "Accept": "*/*",
+      "User-Agent": "Mozilla/5.0"
+    },
+    "url": "https://datafeed.dukascopy.com/datafeed/EURUSD/2025/01/10/00h_ticks.bi5"
+  },
+  "storage": {
+    "local_path": "data/data/raw/fx/tick/dukascopy/EURUSD/2025/01/10/EURUSD_20250110.bin",
+    "s3_bucket": "fx-ml-data",
+    "s3_key": "data/raw/fx/tick/dukascopy/EURUSD/2025/01/10/EURUSD_20250110.bin"
+  },
+  "time_contract": {
+    "quant_effective_date": "2026-01-02",
+    "quant_spec_path": "docs/quant/return_calculation.yaml",
+    "quant_spec_sha256": "39ea438965c6676e391599abd4d28f34afcbb2ecc5ec37c5e6c7171f2d18293b",
+    "timestamp_unit": "ISO-8601",
+    "timezone": "UTC"
+  }
+}

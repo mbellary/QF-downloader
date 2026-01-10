@@ -101,6 +101,7 @@ QF-downloader/
 │     ├─ db.py
 │     ├─ downloader.py
 │     ├─ logger.py
+│     ├─ provider_config.py
 │     ├─ s3_indexer.py
 │     ├─ storage.py
 │     ├─ utils.py

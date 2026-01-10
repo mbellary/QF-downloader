@@ -35,7 +35,10 @@ def test_dynamodb_roundtrip_via_boto3_client(localstack_resources) -> None:
 
     client = get_boto3_client("dynamodb")
 
-    pk = "EURUSD#dukascopy"
+    # Use unique partition key to avoid leaking state into other tests.
+    provider = f"dukascopy-{uuid4().hex[:8]}"
+    pair = f"EURUSD-{uuid4().hex[:8]}"
+    pk = f"{pair}#{provider}"
     sk = f"20240101#tests/{uuid4().hex}.bin"
 
     client.put_item(
@@ -43,8 +46,8 @@ def test_dynamodb_roundtrip_via_boto3_client(localstack_resources) -> None:
         Item={
             "pk": {"S": pk},
             "sk": {"S": sk},
-            "provider": {"S": "dukascopy"},
-            "pair": {"S": "EURUSD"},
+            "provider": {"S": provider},
+            "pair": {"S": pair},
             "date": {"S": "20240101"},
             "s3_key": {"S": sk.split("#", 1)[1]},
             "state": {"S": "PENDING"},
@@ -67,16 +70,20 @@ def test_s3indexer_index_and_query(localstack_resources) -> None:
 
     indexer = S3Indexer()
 
+    # Use unique provider/pair so this test is isolated.
+    provider = f"dukascopy-{uuid4().hex[:8]}"
+    pair = f"EURUSD-{uuid4().hex[:8]}"
+
     async def scenario() -> list[str]:
         await indexer.index_file(
-            provider="dukascopy",
-            pair="EURUSD",
+            provider=provider,
+            pair=pair,
             date="20240101",
             s3_key=f"tests/{uuid4().hex}.bin",
         )
         return await indexer.query_keys(
-            provider="dukascopy",
-            pair="EURUSD",
+            provider=provider,
+            pair=pair,
             start_date="20240101",
             end_date="20240101",
         )

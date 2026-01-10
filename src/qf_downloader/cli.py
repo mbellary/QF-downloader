@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 
 import click
 import typer
-import yaml
 
 from .config import (
     AWS_ACCESS_KEY_ID,
@@ -14,10 +13,8 @@ from .config import (
     PROVIDERS_FILE,
     S3_BUCKET,
 )
-from .db import DownloadDB
-from .downloader import ProviderDownloader
 from .logger import get_logger
-from .storage import S3Client
+from .provider_config import load_providers_config
 
 logger = get_logger("downloader.cli")
 
@@ -35,8 +32,7 @@ cli = click.Command(name="qf_downloader")
 @app.command()
 def list_providers(providers_file: str = None):
     pf = providers_file or PROVIDERS_FILE
-    with open(pf, "r") as fh:
-        providers_cfg = yaml.safe_load(fh)
+    providers_cfg = load_providers_config(pf)
 
     print("\nAvailable Providers:\n")
     for p in providers_cfg.get("providers", []):
@@ -50,6 +46,11 @@ def list_providers(providers_file: str = None):
 # NORMAL RUNTIME POLLING LOOP (incremental updates)
 # ----------------------------------------------------------
 async def _run_loop(providers_cfg):
+    # Lazy imports keep CLI lightweight for commands like `list-providers`.
+    from .db import DownloadDB
+    from .downloader import ProviderDownloader
+    from .storage import S3Client
+
     db = DownloadDB(DB_PATH)
     await db.init()
     s3 = S3Client(S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION)
@@ -67,7 +68,8 @@ async def _run_loop(providers_cfg):
 
             await asyncio.sleep(interval)
 
-    tasks = [asyncio.create_task(provider_poll(p)) for p in providers_cfg["providers"]]
+    providers = [p for p in providers_cfg.get("providers", []) if p.get("enabled", True)]
+    tasks = [asyncio.create_task(provider_poll(p)) for p in providers]
 
     try:
         await asyncio.gather(*tasks)
@@ -79,8 +81,7 @@ async def _run_loop(providers_cfg):
 def run(providers_file: str = None):
     """Run incremental polling for all providers."""
     pf = providers_file or PROVIDERS_FILE
-    with open(pf, "r") as fh:
-        providers_cfg = yaml.safe_load(fh)
+    providers_cfg = load_providers_config(pf)
     asyncio.run(_run_loop(providers_cfg))
 
 
@@ -88,17 +89,31 @@ def run(providers_file: str = None):
 # BACKFILL COMMAND (MULTI-PAIR, MULTI-DAY)
 # ----------------------------------------------------------
 @app.command()
-def backfill(provider_name: str, years: int = 5, providers_file: str = None):
+def backfill(
+    provider_name: str | None = typer.Argument(
+        None, help="Provider name (positional). Example: backfill dukascopy"
+    ),
+    provider_name_opt: str | None = typer.Option(
+        None, "--provider-name", help="Provider name (option). Example: --provider-name dukascopy"
+    ),
+    years: int = 5,
+    providers_file: str | None = None,
+):
     """
     Download historical data for the given provider for last N years.
     """
-    pf = providers_file or PROVIDERS_FILE
-    with open(pf, "r") as fh:
-        providers_cfg = yaml.safe_load(fh)
+    provider_name_effective = provider_name_opt or provider_name
+    if not provider_name_effective:
+        raise typer.BadParameter("Missing provider name (use PROVIDER_NAME or --provider-name)")
 
-    provider = next((p for p in providers_cfg["providers"] if p["name"] == provider_name), None)
+    pf = providers_file or PROVIDERS_FILE
+    providers_cfg = load_providers_config(pf)
+
+    provider = next(
+        (p for p in providers_cfg["providers"] if p["name"] == provider_name_effective), None
+    )
     if not provider:
-        raise RuntimeError(f"Provider '{provider_name}' not found in providers.yaml")
+        raise RuntimeError(f"Provider '{provider_name_effective}' not found in providers config")
 
     start = datetime.utcnow() - timedelta(days=years * 365)
     end = datetime.utcnow()
@@ -109,6 +124,11 @@ def backfill(provider_name: str, years: int = 5, providers_file: str = None):
 async def _do_backfill(provider, start, end):
     print(f"\n🔄 Backfilling {provider['name']} from {start.date()} → {end.date()}\n")
 
+    # Lazy imports keep CLI lightweight for commands like `list-providers`.
+    from .db import DownloadDB
+    from .downloader import ProviderDownloader
+    from .storage import S3Client
+
     db = DownloadDB(DB_PATH)
     await db.init()
     s3 = S3Client(S3_BUCKET, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION)
@@ -118,3 +138,13 @@ async def _do_backfill(provider, start, end):
     await db.close()
 
     print("\n✅ Backfill complete.\n")
+
+
+def main() -> None:
+    """Module entrypoint for `python -m qf_downloader.cli`."""
+
+    app()
+
+
+if __name__ == "__main__":
+    main()

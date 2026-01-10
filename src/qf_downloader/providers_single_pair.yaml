@@ -1,3 +1,7 @@
+# DEPRECATED: legacy single-pair provider config (YAML).
+# Canonical config is now JSON-first: config/vendors/fx_providers.json
+# This file is kept for reference only and is not used by default.
+
 providers:
 
   ###########################################

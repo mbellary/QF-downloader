@@ -1,140 +1,205 @@
 SHELL := /bin/sh
 .DEFAULT_GOAL := help
 
+# --------------------------------------------------
+# Environment
+# --------------------------------------------------
+ENV_FILE := .env.dev
+
+ifneq (,$(wildcard $(ENV_FILE)))
+	include $(ENV_FILE)
+	export
+endif
+
+# --------------------------------------------------
+# Runtime
+# --------------------------------------------------
+APP_ENV ?= localstack
+
+ifeq ($(APP_ENV),localstack)
+	USE_LOCALSTACK := true
+endif
+
+# --------------------------------------------------
+# AWS / LocalStack
+# --------------------------------------------------
+AWS_REGION := ap-south-1
+S3_BUCKET := fx-ml-data
+RAW_FILE_INDEX_TABLE := raw_file_index
+AWS := aws
+
+ifeq ($(USE_LOCALSTACK),true)
+AWS_ENDPOINT := --endpoint-url=http://localhost:4566
+AWS_REGION_ENV := AWS_DEFAULT_REGION=$(AWS_REGION)
+AWS_CREDS := AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_SESSION_TOKEN=
+else
+AWS_ENDPOINT :=
+AWS_REGION_ENV :=
+AWS_CREDS :=
+endif
+
+# --------------------------------------------------
+# Docker
+# --------------------------------------------------
+COMPOSE_FILE ?= docker-compose.yml
+DOCKER_COMPOSE := docker compose
+
+APP_SERVICE := qf-app
+DEPS := localstack
+
+# --------------------------------------------------
+# Tooling
+# --------------------------------------------------
 UV ?= uv
-# Use `uv run --dev -- python -m pytest` so pytest runs under the synced venv.
-# This uses the `--dev` context which is supported by local `uv` versions.
-PYTEST ?= $(UV) run --dev -- python -m pytest
 RUFF ?= $(UV) run --dev -- ruff
-APP_ENV ?= production
-SUITE ?= all
-RUNTIME ?= local
-WITH_COVERAGE ?= false
-DOCKER_COMPOSE_FILE ?= docker-compose.test.yml
-COVERAGE_PACKAGE ?= qf_downloader
-UNIT_TEST_PATH ?= tests/unit
-INTEGRATION_TEST_PATH ?= tests/integration
-VENV ?= .venv
-PYTEST_ARGS ?=
 
-DOCKER_COMPOSE := docker compose -f $(DOCKER_COMPOSE_FILE)
+ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 
-.PHONY: help setup format format-check lint lint-fix check docker-up docker-down test coverage teardown clean _runtime-up _runtime-down _exec-tests
-
+# --------------------------------------------------
+# Help
+# --------------------------------------------------
+.PHONY: help
 help:
-	@echo "Available targets:"
-	@echo "  make setup                # Sync Python dependencies with uv"
-	@echo "  make format               # Auto-format code (Ruff)"
-	@echo "  make format-check         # Check formatting without changes (Ruff)"
-	@echo "  make lint                 # Run lint checks (Ruff)"
-	@echo "  make lint-fix             # Auto-fix lint issues where possible (Ruff)"
-	@echo "  make check                # Run format-check + lint + tests (respects SUITE/RUNTIME)"
-	@echo "  make test                 # Run parametrized test suite (SUITE=unit|integration|all, RUNTIME=local|docker)"
-	@echo "  make coverage             # Run tests with coverage reporting"
-	@echo "  make teardown             # Stop dockerized test stack and clean artifacts"
-	@echo "  make clean                # Remove caches and coverage data"
+	@echo ""
+	@echo "QF Downloader – Development Commands"
+	@echo "-----------------------------------"
+	@echo ""
+	@echo "Stack:"
+	@echo "  make up              Start dev stack"
+	@echo "  make down            Stop dev stack"
+	@echo "  make clean           Remove stack + volumes"
+	@echo ""
+	@echo "Infra:"
+	@echo "  make infra           Create S3 + DynamoDB (LocalStack)"
+	@echo ""
+	@echo "Run:"
+	@echo "  APP_ENV=localstack make run <cmd> -- <args>"
+	@echo ""
+	@echo "Quality:"
+	@echo "  make lint"
+	@echo "  make test"
+	@echo ""
 
-format:
-	@echo "[ruff] formatting";
-	$(RUFF) format .
+# --------------------------------------------------
+# Build
+# --------------------------------------------------
+.PHONY: build
+build:
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) build
 
-format-check:
-	@echo "[ruff] format check";
+# --------------------------------------------------
+# Stack lifecycle
+# --------------------------------------------------
+.PHONY: up
+up:
+	@echo "▶ Starting dev stack (APP_ENV=$(APP_ENV))"
+	APP_ENV=$(APP_ENV) \
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) up -d $(DEPS)
+
+.PHONY: down
+down:
+	@echo "▶ Stopping dev stack"
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) down
+
+.PHONY: clean
+clean:
+	@echo "▶ Cleaning dev stack"
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) down -v --remove-orphans
+
+# --------------------------------------------------
+# LocalStack readiness (Option A – AWS-native)
+# --------------------------------------------------
+.PHONY: wait-localstack
+wait-localstack:
+ifeq ($(USE_LOCALSTACK),true)
+	@echo "▶ Waiting for LocalStack AWS APIs (S3, DynamoDB)"
+	@until \
+		$(AWS) s3 ls --endpoint-url=http://localhost:4566 >/dev/null 2>&1 && \
+		$(AWS) dynamodb list-tables --endpoint-url=http://localhost:4566 >/dev/null 2>&1; do \
+		sleep 2; \
+	done
+	@echo "✔ LocalStack S3 and DynamoDB are ready"
+endif
+
+# --------------------------------------------------
+# Infra bootstrap
+# --------------------------------------------------
+.PHONY: create-s3
+create-s3:
+ifeq ($(USE_LOCALSTACK),true)
+	@echo "▶ Ensuring S3 bucket $(S3_BUCKET) exists"
+	@$(AWS) s3api head-bucket --bucket $(S3_BUCKET) $(AWS_ENDPOINT) 2>/dev/null || \
+	$(AWS) s3api create-bucket \
+		--bucket $(S3_BUCKET) \
+		--region $(AWS_REGION) \
+		--create-bucket-configuration LocationConstraint=$(AWS_REGION) \
+		$(AWS_ENDPOINT)
+endif
+
+.PHONY: create-dynamodb
+create-dynamodb:
+ifeq ($(USE_LOCALSTACK),true)
+	@echo "▶ Ensuring DynamoDB table $(RAW_FILE_INDEX_TABLE) exists"
+	@$(AWS_CREDS) $(AWS_REGION_ENV) $(AWS) dynamodb list-tables \
+		$(AWS_ENDPOINT) \
+		--output text \
+		--query 'TableNames' | grep -w $(RAW_FILE_INDEX_TABLE) >/dev/null 2>&1 || \
+	( \
+		echo "▶ Creating DynamoDB table $(RAW_FILE_INDEX_TABLE)"; \
+		$(AWS_CREDS) $(AWS_REGION_ENV) $(AWS) dynamodb create-table \
+			--table-name $(RAW_FILE_INDEX_TABLE) \
+			--attribute-definitions \
+				AttributeName=pk,AttributeType=S \
+				AttributeName=sk,AttributeType=S \
+			--key-schema \
+				AttributeName=pk,KeyType=HASH \
+				AttributeName=sk,KeyType=RANGE \
+			--provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
+			$(AWS_ENDPOINT); \
+	)
+endif
+
+
+.PHONY: infra
+infra: wait-localstack create-s3 create-dynamodb
+
+# --------------------------------------------------
+# Run
+# --------------------------------------------------
+.PHONY: run
+run: build up infra
+	@echo "▶ Running: $(ARGS)"
+	APP_ENV=$(APP_ENV) \
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) run --rm \
+	$(APP_SERVICE) sh -lc "uv run $(ARGS)"
+
+# --------------------------------------------------
+# Logs / Shell
+# --------------------------------------------------
+.PHONY: logs
+logs:
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) logs -f $(APP_SERVICE)
+
+.PHONY: shell
+shell:
+	APP_ENV=$(APP_ENV) \
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) run --rm \
+	$(APP_SERVICE) sh
+
+# --------------------------------------------------
+# Lint / Test
+# --------------------------------------------------
+.PHONY: lint
+lint:
+	$(RUFF) check .
 	$(RUFF) format --check .
 
-lint:
-	@echo "[ruff] lint";
-	$(RUFF) check .
-
-lint-fix:
-	@echo "[ruff] lint (fix)";
-	$(RUFF) check . --fix
-
-check:
-	@STATUS=0; \
-	$(MAKE) --no-print-directory format-check || STATUS=$$?; \
-	if [ $$STATUS -eq 0 ]; then $(MAKE) --no-print-directory lint-fix || STATUS=$$?; fi; \
-	exit $$STATUS
-
-setup:
-	@echo "[setup] Ensuring Python deps are synced via $(UV)"
-	@set -e; \
-	# Try the modern --venv flag first, fall back to --dev, then to plain sync
-	if $(UV) sync --venv $(VENV) >/dev/null 2>&1; then \
-		echo "[setup] using $(UV) sync --venv $(VENV)"; \
-		$(UV) sync --venv $(VENV); \
-	elif $(UV) sync --dev >/dev/null 2>&1; then \
-		echo "[setup] falling back to $(UV) sync --dev"; \
-		$(UV) sync --dev; \
-	else \
-		echo "[setup] falling back to $(UV) sync"; \
-		$(UV) sync; \
-	fi
-	# Ensure pytest is installable / available in the venv. If missing, create venv and
-	# install dev extras from pyproject.toml
-	if [ -x "$(VENV)/bin/python" ] && "$(VENV)/bin/python" -c 'import pytest' >/dev/null 2>&1; then \
-		echo "[setup] pytest available in $(VENV) (bin)"; \
-	elif [ -x "$(VENV)/Scripts/python" ] && "$(VENV)/Scripts/python" -c 'import pytest' >/dev/null 2>&1; then \
-		echo "[setup] pytest available in $(VENV) (Scripts)"; \
-	else \
-		echo "[setup] pytest not found in venv; creating venv and installing dev deps"; \
-		if [ ! -x "$(VENV)/bin/python" ] && [ ! -x "$(VENV)/Scripts/python" ]; then \
-			python -m venv $(VENV) --upgrade-deps; \
-		fi; \
-		if [ -x "$(VENV)/bin/python" ]; then PYV="$(VENV)/bin/python"; else PYV="$(VENV)/Scripts/python"; fi; \
-		"$${PYV}" -m ensurepip --upgrade >/dev/null 2>&1 || true; \
-		"$${PYV}" -m pip install --upgrade pip setuptools >/dev/null; \
-		"$${PYV}" -m pip install -e '.[dev]'; \
-	fi
-
-_runtime-up:
-	@if [ "$(RUNTIME)" = "docker" ]; then \
-		echo "[runtime] Starting dockerized test deps via $(DOCKER_COMPOSE_FILE)"; \
-		$(DOCKER_COMPOSE) up -d --build; \
-	fi
-
-_runtime-down:
-	@if [ "$(RUNTIME)" = "docker" ]; then \
-		echo "[runtime] Stopping dockerized test deps"; \
-		$(DOCKER_COMPOSE) down --remove-orphans --volumes; \
-	fi
-
-_exec-tests:
-	@set -euo pipefail; \
-	if [ "$(SUITE)" = "unit" ]; then \
-		TARGETS="$(UNIT_TEST_PATH)"; \
-	elif [ "$(SUITE)" = "integration" ]; then \
-		TARGETS="$(INTEGRATION_TEST_PATH)"; \
-	else \
-		TARGETS="$(UNIT_TEST_PATH) $(INTEGRATION_TEST_PATH)"; \
-	fi; \
-	CMD="$(PYTEST) $$TARGETS $(PYTEST_ARGS)"; \
-	if [ "$(WITH_COVERAGE)" = "true" ]; then \
-		CMD="$$CMD --cov $(COVERAGE_PACKAGE) --cov-report term-missing --cov-report=xml"; \
-	fi; \
-	echo "[pytest] APP_ENV=$(APP_ENV) $$CMD"; \
-	APP_ENV=$(APP_ENV) $$CMD
-
+.PHONY: test
 test:
-	@STATUS=0; \
-	$(MAKE) --no-print-directory setup || STATUS=$$?; \
-	if [ $$STATUS -eq 0 ]; then $(MAKE) --no-print-directory _runtime-up || STATUS=$$?; fi; \
-	if [ $$STATUS -eq 0 ]; then $(MAKE) --no-print-directory _exec-tests || STATUS=$$?; fi; \
-	RUNTIME=$(RUNTIME) $(MAKE) --no-print-directory _runtime-down; \
-	exit $$STATUS
+	$(MAKE) -f Makefile.test all
 
-coverage:
-	@$(MAKE) --no-print-directory test WITH_COVERAGE=true
-
-teardown:
-	@RUNTIME=$(RUNTIME) $(MAKE) --no-print-directory _runtime-down
-	@rm -rf .pytest_cache .coverage coverage.xml
-
-clean:
-	@rm -rf .pytest_cache .coverage coverage.xml $(VENV)
-
-docker-up:
-	@RUNTIME=docker $(MAKE) --no-print-directory _runtime-up
-
-docker-down:
-	@RUNTIME=docker $(MAKE) --no-print-directory _runtime-down
+# --------------------------------------------------
+# Make arg passthrough
+# --------------------------------------------------
+%:
+	@:

@@ -1,13 +1,11 @@
 
-version: "3.9"
 services:
   qf_app:
+    image: qf_app:test
     build:
       context: .
       dockerfile: Dockerfile.test
-    command: ["pytest", "tests/integration", "-m", "docker", "-vv"]
-    volumes:
-      - ../:/app
+    command: ["uv", "run", "pytest", "tests/integration", "-m", "docker", "-vv"]
     environment:
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
@@ -18,7 +16,8 @@ services:
       DB_PATH: /tmp/test.db
       S3_BUCKET: test-bucket
     depends_on:
-      - localstack
+      localstack:
+        condition: service_healthy
 
   localstack:
     image: localstack/localstack:latest
@@ -26,3 +25,8 @@ services:
       - "4566:4566"
     environment:
       SERVICES: s3,dynamodb
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 10

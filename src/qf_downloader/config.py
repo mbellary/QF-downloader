@@ -8,8 +8,12 @@ from qf_downloader.logger import get_logger
 
 logger = get_logger("downloader_worker.config")
 
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 PACKAGE_DIR = Path(__file__).resolve().parent
-
+DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+CONFIG_DIR = BASE_DIR / "config" / "vendors"
+CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 
 APP_ENV = os.getenv("APP_ENV", "production").lower()
 
@@ -35,8 +39,8 @@ AWS_ACCESS_KEY_ID = _env("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = _env("AWS_SECRET_ACCESS_KEY")
 AWS_REGION = _env("AWS_REGION", "us-east-1")
 RAW_FILE_INDEX_TABLE = _env("RAW_FILE_INDEX_TABLE", "us-east-1")
-DB_PATH = _env("DB_PATH", "./data/downloads.db")
-PROVIDERS_FILE = _env("PROVIDERS_FILE", "./src/example_pkg/providers.yaml")
+DB_PATH = DATA_DIR / _env("DB_FILE", "downloads.db")
+PROVIDERS_FILE = CONFIG_DIR / _env("PROVIDERS_FILE", "fx_providers.json")
 POLL_INTERVAL_SECONDS = int(_env("POLL_INTERVAL_SECONDS", "300"))
 TWELVEDATA_API_KEY = _env("TWELVEDATA_API_KEY")
 FMP_API_KEY = _env("FMP_API_KEY")
@@ -54,6 +58,11 @@ class Settings:
     download_path: Path
 
     def __init__(self):
-        dp = Path(_env("DOWNLOAD_PATH", "./data"))
+        dp = Path(_env("DOWNLOAD_PATH", str(DATA_DIR)))
         dp.mkdir(parents=True, exist_ok=True)
         self.download_path = dp
+
+
+# if __name__ == "__main__":
+#     print(CONFIG_DIR)
+#     print(PROVIDERS_FILE)

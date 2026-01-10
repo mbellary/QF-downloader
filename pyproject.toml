@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Async data ingestion package for price + macro event sources (EUR/USD) with S3 upload."
 authors = [{name = "Your Name", email = "you@example.com"}]
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 
 
 dependencies = [

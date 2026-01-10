@@ -22,8 +22,15 @@ class S3Indexer:
         # Fallback for unexpected shapes.
         return str(av)
 
-    async def index_file(self, provider: str, pair: str, date: str, s3_key: str) -> None:
-        pk = f"{pair}#{provider}"
+    async def index_file(
+        self,
+        provider: str,
+        pair: str,
+        date: str,
+        s3_key: str,
+        artifact_type: str | None = None,
+    ) -> None:
+        pk = f"{pair}#{provider}" if not artifact_type else f"{pair}#{provider}#{artifact_type}"
         sk = f"{date}#{s3_key}"
 
         async with await get_aboto3_client("dynamodb") as dynamo:
@@ -36,19 +43,26 @@ class S3Indexer:
                 "s3_key": self._av_s(s3_key),
                 "state": self._av_s("PENDING"),
             }
+            if artifact_type:
+                item["artifact_type"] = self._av_s(artifact_type)
             await dynamo.put_item(TableName=self.table_name, Item=item)
 
         logger.info(f"Indexed raw file: pk={pk}, sk={sk}")
 
     async def query_keys(
-        self, provider: str, pair: str, start_date: str, end_date: str
+        self,
+        provider: str,
+        pair: str,
+        start_date: str,
+        end_date: str,
+        artifact_type: str | None = None,
     ) -> list[str]:
         """
         Query DynamoDB for s3_keys in date range (inclusive).
         start_date, end_date format: YYYYMMDD
         Returns sorted list of s3_key strings.
         """
-        pk = f"{pair}#{provider}"
+        pk = f"{pair}#{provider}" if not artifact_type else f"{pair}#{provider}#{artifact_type}"
         start_sk = f"{start_date}#"
         end_sk = f"{end_date}#~"  # tilde ensures inclusive upper bound
 

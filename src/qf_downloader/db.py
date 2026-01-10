@@ -22,6 +22,22 @@ CREATE TABLE IF NOT EXISTS fetch_status (
 )
 """
 
+CREATE_FAILURE_TABLE = """
+CREATE TABLE IF NOT EXISTS fetch_failures (
+    provider TEXT NOT NULL,
+    pair TEXT NOT NULL,
+    date TEXT NOT NULL,
+    artifact_type TEXT NOT NULL,
+    url TEXT,
+    http_status INTEGER,
+    error_type TEXT,
+    error_message TEXT,
+    attempt_count INTEGER,
+    last_attempt_at_utc TEXT,
+    PRIMARY KEY(provider, pair, date, artifact_type)
+)
+"""
+
 
 class DownloadDB:
     def __init__(self, db_path: str):
@@ -33,6 +49,7 @@ class DownloadDB:
         self._conn = await aiosqlite.connect(self.db_path)
         await self._conn.execute(CREATE_TABLE_SQL)
         await self._conn.execute(CREATE_FETCH_TABLE)
+        await self._conn.execute(CREATE_FAILURE_TABLE)
         await self._conn.commit()
 
     async def close(self):
@@ -53,14 +70,73 @@ class DownloadDB:
             (provider, url, checksum, s3_key),
         )
         # Update or insert the last_successful timestamp
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.UTC)
+        provider_scope = provider.split("#", 1)[0] if isinstance(provider, str) else str(provider)
         await self._conn.execute(
             """
             INSERT INTO fetch_status (provider, last_successful)
             VALUES (?, ?)
             ON CONFLICT(provider) DO UPDATE SET last_successful = excluded.last_successful
             """,
-            (provider, now),
+            (provider_scope, now),
+        )
+        await self._conn.commit()
+
+    async def record_failure(
+        self,
+        *,
+        provider: str,
+        pair: str,
+        date: str,
+        artifact_type: str,
+        url: str | None,
+        http_status: int | None,
+        error_type: str,
+        error_message: str,
+    ) -> None:
+        await self._conn.execute(
+            """
+            INSERT INTO fetch_failures (
+                provider, pair, date, artifact_type, url, http_status,
+                error_type, error_message, attempt_count, last_attempt_at_utc
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE((
+                SELECT attempt_count FROM fetch_failures
+                WHERE provider = ? AND pair = ? AND date = ? AND artifact_type = ?
+            ), 0) + 1, ?)
+            ON CONFLICT(provider, pair, date, artifact_type)
+            DO UPDATE SET
+                url = excluded.url,
+                http_status = excluded.http_status,
+                error_type = excluded.error_type,
+                error_message = excluded.error_message,
+                attempt_count = excluded.attempt_count,
+                last_attempt_at_utc = excluded.last_attempt_at_utc
+            """,
+            (
+                provider,
+                pair,
+                date,
+                artifact_type,
+                url,
+                http_status,
+                error_type,
+                error_message,
+                provider,
+                pair,
+                date,
+                artifact_type,
+                datetime.datetime.now(datetime.UTC).isoformat(),
+            ),
+        )
+        await self._conn.commit()
+
+    async def clear_failure(
+        self, *, provider: str, pair: str, date: str, artifact_type: str
+    ) -> None:
+        await self._conn.execute(
+            "DELETE FROM fetch_failures WHERE provider = ? AND pair = ? AND date = ? AND artifact_type = ?",
+            (provider, pair, date, artifact_type),
         )
         await self._conn.commit()
 
