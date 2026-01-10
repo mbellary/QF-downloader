@@ -69,6 +69,7 @@ Ensure **raw market data is ingested once**, timestamped once, and **never reint
 | Ingestion metadata | `/pipelines/ingestion/fx/metadata.json` |
 | Raw Market Ingestion schema | `/docs/infra/phase0/schemas/raw_market_ingestion.yaml` |
 
+
 ---
 
 ### **Acceptance Criteria**
@@ -98,6 +99,7 @@ Provide **clean, timestamped, alignment-ready macro inputs** for later Quant-def
 | News API credentials    | LLM Team     | `/config/secrets/news_api.json`       |
 | Macro data vendor specs | LLM Team     | `/config/vendors/macro_feeds.json`    |
 | Quant alignment rules   | Quant (Q0.1) | `/docs/quant/return_calculation.yaml` |
+| Approved Data providers   | Quant (Q0.7) | `/docs/quant/data_providers/macro_event_providers.yaml` |
 
 ---
 
@@ -116,6 +118,8 @@ Provide **clean, timestamped, alignment-ready macro inputs** for later Quant-def
 | Raw news text    | `/data/raw/news/`         |
 | Raw macro events | `/data/raw/macro/events/` |
 | Macro News Ingestion schema | `/docs/infra/phase0/schemas/macro_news_ingestion.yaml` |
+| Macro Data provider | `/config/vendors/macro_providers.json` |
+
 
 
 ---
