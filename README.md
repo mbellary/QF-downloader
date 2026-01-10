@@ -15,7 +15,7 @@ Phase 0.1 adds a deterministic **raw FX ingestion contract**:
 - Per-artifact sidecar metadata (`<raw_key>.metadata.json`) bound to the Quant Q0.1 time contract
 - Optional roll-up manifest at `pipelines/ingestion/fx/metadata.json` (runtime-generated)
 - No silent drops: fetch failures are persisted in SQLite
-- DynamoDB indexing optionally includes `artifact_type` in the partition key
+- DynamoDB indexing optionally includes `artifact_type` in the partition key.
 
 At a high level, the downloader pipeline in `qf_downloader.downloader.ProviderDownloader`:
 
