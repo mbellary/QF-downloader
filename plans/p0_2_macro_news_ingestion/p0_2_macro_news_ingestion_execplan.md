@@ -69,8 +69,8 @@ Provide clean, timestamped, alignment-ready macro inputs for later Quant-defined
 - [x] (2026-01-11) Integration tests added for LocalStack S3 contract (macro_events + news; skipped until implementation lands): [tests/integration/test_p0_2_macro_news_ingestion_integration.py](tests/integration/test_p0_2_macro_news_ingestion_integration.py)
 - [x] (2026-01-11) Validation passes (unit): `make -f Makefile.test check` and `make -f Makefile.test test SUITE=unit`.
 - [x] (2026-01-11) Validation passes (integration): `make -f Makefile.test test SUITE=integration RUNTIME=docker` (user-confirmed).
-- [ ] (2026-01-11) Branch pushed: `task/p0-2-macro-news-ingestion`.
-- [ ] (2026-01-11) PR opened against `main` (links Issue #17).
+- [x] (2026-01-11) Branch pushed: `task/p0-2-macro-news-ingestion` (https://github.com/mbellary/QF-downloader/tree/task/p0-2-macro-news-ingestion).
+- [x] (2026-01-11) PR opened against `main`: https://github.com/mbellary/QF-downloader/pull/20
 
 ## Surprises & Discoveries
 
