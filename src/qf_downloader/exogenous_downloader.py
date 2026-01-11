@@ -8,7 +8,6 @@ from typing import Any
 import aiohttp
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from qf_downloader.config import S3_BUCKET
 from qf_downloader.db import DownloadDB
 from qf_downloader.logger import get_logger
 from qf_downloader.storage import S3Client
@@ -192,7 +191,7 @@ class ExogenousProviderDownloader:
             http_method=method,
             request_headers={k: str(v) for k, v in headers.items()},
             raw_sha256=checksum,
-            s3_bucket=S3_BUCKET,
+            s3_bucket=getattr(self.s3, "bucket", None),
             s3_key=s3_key,
             local_path=str(local_file),
         )

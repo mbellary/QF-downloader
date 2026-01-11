@@ -68,7 +68,9 @@ Provide clean, timestamped, alignment-ready macro inputs for later Quant-defined
 - [x] (2026-01-11) Unit tests added/updated for Phase 0.2 contracts (contract tests; execution pending until implementation lands): [tests/unit/test_p0_2_macro_news_ingestion.py](tests/unit/test_p0_2_macro_news_ingestion.py)
 - [x] (2026-01-11) Integration tests added for LocalStack S3 contract (macro_events + news; skipped until implementation lands): [tests/integration/test_p0_2_macro_news_ingestion_integration.py](tests/integration/test_p0_2_macro_news_ingestion_integration.py)
 - [x] (2026-01-11) Validation passes (unit): `make -f Makefile.test check` and `make -f Makefile.test test SUITE=unit`.
-- [ ] Validation passes (integration): `make -f Makefile.test test SUITE=integration RUNTIME=docker`.
+- [x] (2026-01-11) Validation passes (integration): `make -f Makefile.test test SUITE=integration RUNTIME=docker` (user-confirmed).
+- [ ] (2026-01-11) Branch pushed: `task/p0-2-macro-news-ingestion`.
+- [ ] (2026-01-11) PR opened against `main` (links Issue #17).
 
 ## Surprises & Discoveries
 
