@@ -1,0 +1,18 @@
+{
+  "providers": [
+    {
+      "name": "econdb",
+      "artifact_type": "macro_events",
+      "date_query_mode": "day",
+      "url_template": "https://example.invalid/macro/{year}/{month}/{day}.json",
+      "auth": {"type": "none"}
+    },
+    {
+      "name": "fmp",
+      "artifact_type": "news",
+      "date_query_mode": "day",
+      "url_template": "https://example.invalid/news/{year}/{month}/{day}.json",
+      "auth": {"type": "none"}
+    }
+  ]
+}

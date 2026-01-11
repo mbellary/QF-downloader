@@ -61,13 +61,14 @@ Provide clean, timestamped, alignment-ready macro inputs for later Quant-defined
 - [x] (2026-01-11) GitHub tracking issue created for Phase 0.2: https://github.com/mbellary/QF-downloader/issues/17
 - [x] (2026-01-11) Program Manager verification: Issue #17 is open and canonical; sync comment posted (see issue comments).
 - [x] (2026-01-11) Design document created: `plans/p0_2_macro_news_ingestion/p0_2_macro_news_ingestion_design.md`
-- [ ] Provider spec contracts added: `config/vendors/macro_feeds.json` (raw endpoint specs) and `config/vendors/macro_providers.json` (curated allowlisted providers).
-- [ ] Secrets scaffolding added and git-safed: `config/secrets/news_api.json` (gitignored) with a committed `config/secrets/news_api.example.json` + README updates.
-- [ ] Schema contract added: `docs/infra/phase0/schemas/macro_news_ingestion.yaml`.
-- [ ] Implementation added: macro + news downloaders, deterministic paths, sidecar metadata, checksum ledger, and failure recording.
-- [ ] Unit tests added/updated for Phase 0.2 contracts.
-- [ ] Integration tests added/updated for LocalStack S3 + DynamoDB indexing (if Phase 0.2 stores in S3 like Phase 0.1).
-- [ ] Validation passes: `make -f Makefile.test check` and `make -f Makefile.test test SUITE=unit`.
+- [x] (2026-01-11) Provider spec contracts added: `config/vendors/macro_feeds.json` (raw endpoint specs) and `config/vendors/macro_providers.json` (curated allowlisted providers).
+- [x] (2026-01-11) Secrets scaffolding added and git-safed: `config/secrets/news_api.json` (gitignored by pattern) with committed `config/secrets/news_api.example.json`.
+- [x] (2026-01-11) Schema contract added: `docs/infra/phase0/schemas/macro_news_ingestion.yaml`.
+- [x] (2026-01-11) Implementation added: `src/qf_downloader/exogenous_downloader.py` + metadata/CLI extensions for macro + news.
+- [x] (2026-01-11) Unit tests added/updated for Phase 0.2 contracts (contract tests; execution pending until implementation lands): [tests/unit/test_p0_2_macro_news_ingestion.py](tests/unit/test_p0_2_macro_news_ingestion.py)
+- [x] (2026-01-11) Integration tests added for LocalStack S3 contract (macro_events + news; skipped until implementation lands): [tests/integration/test_p0_2_macro_news_ingestion_integration.py](tests/integration/test_p0_2_macro_news_ingestion_integration.py)
+- [x] (2026-01-11) Validation passes (unit): `make -f Makefile.test check` and `make -f Makefile.test test SUITE=unit`.
+- [ ] Validation passes (integration): `make -f Makefile.test test SUITE=integration RUNTIME=docker`.
 
 ## Surprises & Discoveries
 

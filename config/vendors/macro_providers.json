@@ -1,0 +1,16 @@
+{
+  "providers": [
+    {
+      "name": "econdb",
+      "enabled": false,
+      "artifact_type": "macro_events",
+      "url_template": "https://example.invalid/macro/{year}/{month}/{day}.json"
+    },
+    {
+      "name": "fmp",
+      "enabled": false,
+      "artifact_type": "news",
+      "url_template": "https://example.invalid/news/{year}/{month}/{day}.json"
+    }
+  ]
+}
