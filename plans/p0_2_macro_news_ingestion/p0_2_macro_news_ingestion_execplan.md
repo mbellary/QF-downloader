@@ -72,6 +72,14 @@ Provide clean, timestamped, alignment-ready macro inputs for later Quant-defined
 - [x] (2026-01-11) Branch pushed: `task/p0-2-macro-news-ingestion` (https://github.com/mbellary/QF-downloader/tree/task/p0-2-macro-news-ingestion).
 - [x] (2026-01-11) PR opened against `main`: https://github.com/mbellary/QF-downloader/pull/20
 
+- [x] (2026-01-13) Remediation implemented for review gaps (Q0.7 allowlist enforcement, `enabled` enforcement, metadata redaction + fetched_at_utc/request/content fields, no-forward-looking enforced in downloader, mechanical news normalization with preserved raw bytes when changed).
+  - Code: https://github.com/mbellary/QF-downloader/commit/3414e2f
+  - Key files: `src/qf_downloader/exogenous_downloader.py`, `src/qf_downloader/metadata.py`, `src/qf_downloader/cli.py`, `src/qf_downloader/quant_allowlist.py`
+  - Tests updated for allowlist enforcement: `tests/unit/test_p0_2_macro_news_ingestion.py`, `tests/integration/test_p0_2_macro_news_ingestion_integration.py`
+
+- [x] (2026-01-13) Validation passes (unit): `make -f Makefile.test check` and `make -f Makefile.test test SUITE=unit`.
+- [x] (2026-01-13) Validation passes (integration): `make -f Makefile.test test SUITE=integration RUNTIME=docker`.
+
 ## Surprises & Discoveries
 
 - Observation: Several Quant “.yaml” documents are JSON stored in a `.yaml` file (YAML 1.2 is a superset of JSON). This repo currently parses `docs/quant/return_calculation.yaml` via JSON for determinism in `src/qf_downloader/metadata.py`.
