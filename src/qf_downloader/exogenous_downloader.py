@@ -4,6 +4,7 @@ import os
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 import aiohttp
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -14,6 +15,7 @@ from qf_downloader.storage import S3Client
 from qf_downloader.utils import ensure_dir, guess_content_type
 
 from .metadata import build_macro_news_sidecar_metadata, update_rollup_manifest_macro_news
+from .quant_allowlist import is_allowlisted_macro_event_provider
 
 logger = get_logger("downloader.exogenous")
 
@@ -53,13 +55,39 @@ class ExogenousProviderDownloader:
         self.db = db
         self.base_data_dir = base_data_dir
 
+        if "enabled" in provider and not bool(provider.get("enabled")):
+            raise ValueError(f"Provider '{provider.get('name')}' is disabled (enabled=false)")
+
+        artifact_type = str(provider.get("artifact_type") or provider.get("type") or "").lower()
+        provider_name = str(provider.get("name"))
+        if artifact_type == "macro_events":
+            repo_root = Path(__file__).resolve().parents[2]
+            if not is_allowlisted_macro_event_provider(
+                provider_name=provider_name,
+                repo_root=repo_root,
+            ):
+                raise ValueError(
+                    f"Provider '{provider_name}' is not allowlisted by Quant Q0.7; "
+                    "set enabled=false or use an approved provider"
+                )
+
+    @staticmethod
+    def _normalize_news_bytes(content: bytes) -> bytes:
+        text = content.decode("utf-8", errors="replace")
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+        text = text.replace("\x00", "")
+        text = "".join(ch for ch in text if ch in {"\n", "\t"} or ord(ch) >= 32)
+        return text.encode("utf-8")
+
     async def backfill_range(self, *, start: datetime, end: datetime) -> None:
+        validate_end_date_not_forward_looking(end=end.date(), now=datetime.now(UTC))
         day = start
         while day <= end:
             await self._download_single_day(day=day)
             day += timedelta(days=1)
 
     async def _download_single_day(self, *, day: datetime) -> dict[str, Any]:
+        validate_end_date_not_forward_looking(end=day.date(), now=datetime.now(UTC))
         yyyy = day.strftime("%Y")
         mm = day.strftime("%m")
         dd = day.strftime("%d")
@@ -144,6 +172,7 @@ class ExogenousProviderDownloader:
 
         async with aiohttp.ClientSession() as session:
             try:
+                fetched_at_utc = datetime.now(UTC).isoformat()
                 _resp, content = await self._fetch(
                     session, method, url, params=params, headers=headers, auth=auth
                 )
@@ -163,10 +192,42 @@ class ExogenousProviderDownloader:
                     )
                 return {"status": "error", "url": url}
 
-        checksum = hashlib.sha256(content).hexdigest()
+        content_type = None
+        resp_headers = getattr(_resp, "headers", None)
+        if resp_headers is not None:
+            content_type = resp_headers.get("Content-Type")
+        if not content_type:
+            content_type = guess_content_type(url, filename)
+
+        raw_vendor_bytes = content
+        raw_vendor_checksum = hashlib.sha256(raw_vendor_bytes).hexdigest()
+
+        raw_filename: str | None = None
+        raw_s3_key: str | None = None
+        raw_local_path: str | None = None
+
+        raw_vendor_preserved = False
+        if artifact_type == "news":
+            normalized = self._normalize_news_bytes(raw_vendor_bytes)
+            if normalized != raw_vendor_bytes:
+                raw_vendor_preserved = True
+                raw_filename = f"news_{yyyymmdd}.raw"
+                raw_s3_key = f"{save_prefix}/{raw_filename}".replace("\\", "/")
+                raw_local_file = local_dir / raw_filename
+                raw_local_file.write_bytes(raw_vendor_bytes)
+                raw_local_path = str(raw_local_file)
+                await self.s3.upload_file(
+                    content=raw_vendor_bytes,
+                    key=raw_s3_key,
+                    content_type="application/octet-stream",
+                )
+
+                content = normalized
+
+        artifact_checksum = hashlib.sha256(content).hexdigest()
 
         provider_key = f"{provider_name}#{artifact_type}#{yyyymmdd}"
-        if await self.db.exists_checksum(provider_key, checksum):
+        if await self.db.exists_checksum(provider_key, artifact_checksum):
             logger.info("✓ [%s] Already ingested for %s", provider_name, yyyymmdd)
             return {"status": "skipped"}
 
@@ -178,7 +239,7 @@ class ExogenousProviderDownloader:
         await self.s3.upload_file(
             content=content,
             key=s3_key,
-            content_type=guess_content_type(url, filename),
+            content_type=content_type,
         )
 
         repo_root = Path(__file__).resolve().parents[2]
@@ -189,11 +250,20 @@ class ExogenousProviderDownloader:
             partition_date_utc=day.date().isoformat(),
             url=url,
             http_method=method,
+            request_params={k: str(v) for k, v in params.items()},
             request_headers={k: str(v) for k, v in headers.items()},
-            raw_sha256=checksum,
+            raw_sha256=artifact_checksum,
+            content_bytes=len(content),
+            content_type=content_type,
+            fetched_at_utc=fetched_at_utc,
             s3_bucket=getattr(self.s3, "bucket", None),
             s3_key=s3_key,
             local_path=str(local_file),
+            raw_s3_key=raw_s3_key,
+            raw_local_path=raw_local_path,
+            raw_vendor_sha256=raw_vendor_checksum if raw_vendor_preserved else None,
+            raw_vendor_bytes=len(raw_vendor_bytes) if raw_vendor_preserved else None,
+            raw_vendor_content_type="application/octet-stream" if raw_vendor_preserved else None,
         )
         sidecar_bytes = (json.dumps(sidecar, indent=2, sort_keys=True) + "\n").encode("utf-8")
         sidecar_key = f"{s3_key}.metadata.json"
@@ -209,7 +279,7 @@ class ExogenousProviderDownloader:
         except Exception as exc:  # noqa: BLE001
             logger.warning("Failed to update macro/news rollup manifest: %s", exc)
 
-        await self.db.add_download(provider_key, url, checksum, s3_key)
+        await self.db.add_download(provider_key, url, artifact_checksum, s3_key)
         if hasattr(self.db, "clear_failure"):
             await self.db.clear_failure(
                 provider=provider_name,
@@ -265,7 +335,9 @@ class ExogenousProviderDownloader:
         wait=wait_exponential(min=2, max=30),
     )
     async def _fetch(self, session, method, url, params, headers, auth):
-        logger.info("Fetching %s", url)
+        parts = urlsplit(url)
+        safe_url = urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
+        logger.info("Fetching %s", safe_url)
         async with session.request(method, url, params=params, headers=headers, auth=auth) as resp:
             resp.raise_for_status()
             content = await resp.read()

@@ -41,7 +41,7 @@ def test_p0_2_macro_events_ingestion_uploads_raw_and_sidecar_to_s3(
 
     endpoint_url = localstack_resources["endpoint_url"]
 
-    provider_name = "econdb"
+    provider_name = "FRED"
     artifact_type = "macro_events"
     day = datetime(2024, 1, 2, tzinfo=UTC)
 

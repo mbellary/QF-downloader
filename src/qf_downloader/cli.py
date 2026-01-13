@@ -161,6 +161,20 @@ def macro_backfill(
     if not provider:
         raise RuntimeError(f"Macro provider '{provider_name}' not found in {pf}")
 
+    if not bool(provider.get("enabled", True)):
+        raise RuntimeError(f"Macro provider '{provider_name}' is disabled (enabled=false) in {pf}")
+
+    from pathlib import Path
+
+    from .quant_allowlist import is_allowlisted_macro_event_provider
+
+    repo_root = Path(__file__).resolve().parents[2]
+    if not is_allowlisted_macro_event_provider(provider_name=provider_name, repo_root=repo_root):
+        raise RuntimeError(
+            f"Macro provider '{provider_name}' is not allowlisted by Quant Q0.7; "
+            "choose an approved provider or set enabled=false"
+        )
+
     asyncio.run(_do_exogenous_backfill(provider, start_dt, end_dt))
 
 
@@ -201,6 +215,9 @@ def news_backfill(
     )
     if not provider:
         raise RuntimeError(f"News provider '{provider_name}' not found in {pf}")
+
+    if not bool(provider.get("enabled", True)):
+        raise RuntimeError(f"News provider '{provider_name}' is disabled (enabled=false) in {pf}")
 
     asyncio.run(_do_exogenous_backfill(provider, start_dt, end_dt))
 

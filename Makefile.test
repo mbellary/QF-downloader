@@ -92,18 +92,6 @@ setup:
 	@echo "• Installing runtime + dev dependencies"
 	@$(UV) pip install --python $(VENV)/bin/python -e ".[dev]"
 
-_runtime-up:
-	@if [ "$(RUNTIME)" = "docker" ]; then \
-		echo "[runtime] Starting dockerized test deps via $(DOCKER_COMPOSE_FILE)"; \
-		$(DOCKER_COMPOSE) up -d --build; \
-	fi
-
-_runtime-down:
-	@if [ "$(RUNTIME)" = "docker" ]; then \
-		echo "[runtime] Stopping dockerized test deps"; \
-		$(DOCKER_COMPOSE) down --remove-orphans --volumes; \
-	fi
-
 # --------------------------------------------------
 # LocalStack readiness (Option A – AWS-native)
 # --------------------------------------------------
@@ -111,8 +99,8 @@ wait-localstack:
 ifeq ($(USE_LOCALSTACK),true)
 	@echo "▶ Waiting for LocalStack AWS APIs (S3, DynamoDB)"
 	@until \
-		$(AWS) s3 ls --endpoint-url=http://localhost:4566 >/dev/null 2>&1 && \
-		$(AWS) dynamodb list-tables --endpoint-url=http://localhost:4566 >/dev/null 2>&1; do \
+		$(AWS_CREDS) $(AWS_REGION_ENV) $(AWS) s3 ls --endpoint-url=http://localhost:4566 >/dev/null 2>&1 && \
+		$(AWS_CREDS) $(AWS_REGION_ENV) $(AWS) dynamodb list-tables --endpoint-url=http://localhost:4566 >/dev/null 2>&1; do \
 		sleep 2; \
 	done
 	@echo "✔ LocalStack S3 and DynamoDB are ready"
@@ -124,12 +112,18 @@ endif
 create-s3:
 ifeq ($(USE_LOCALSTACK),true)
 	@echo "▶ Ensuring S3 bucket $(S3_BUCKET) exists"
-	@$(AWS) s3api head-bucket --bucket $(S3_BUCKET) $(AWS_ENDPOINT) 2>/dev/null || \
-	$(AWS) s3api create-bucket \
+	@$(AWS_CREDS) $(AWS_REGION_ENV) $(AWS) s3api head-bucket --bucket $(S3_BUCKET) $(AWS_ENDPOINT) 2>/dev/null || \
+	$(AWS_CREDS) $(AWS_REGION_ENV) $(AWS) s3api create-bucket \
 		--bucket $(S3_BUCKET) \
 		--region $(AWS_REGION) \
 		--create-bucket-configuration LocationConstraint=$(AWS_REGION) \
 		$(AWS_ENDPOINT)
+endif
+
+delete-s3:
+ifeq ($(USE_LOCALSTACK),true)
+	@echo "▶ Deleting S3 bucket $(S3_BUCKET) (if present)"
+	@$(AWS_CREDS) $(AWS_REGION_ENV) $(AWS) s3 rb s3://$(S3_BUCKET) --force $(AWS_ENDPOINT) >/dev/null 2>&1 || true
 endif
 
 create-dynamodb:
@@ -150,11 +144,37 @@ ifeq ($(USE_LOCALSTACK),true)
 				AttributeName=pk,KeyType=HASH \
 				AttributeName=sk,KeyType=RANGE \
 			--provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
-			$(AWS_ENDPOINT); \
+			$(AWS_ENDPOINT) >/dev/null 2>&1 || true \
 	)
 endif
 
-_infra: wait-localstack create-s3 create-dynamodb
+delete-dynamodb:
+ifeq ($(USE_LOCALSTACK),true)
+	@echo "▶ Deleting DynamoDB table $(RAW_FILE_INDEX_TABLE) (if present)"
+	@$(AWS_CREDS) $(AWS_REGION_ENV) $(AWS) dynamodb delete-table \
+		--table-name $(RAW_FILE_INDEX_TABLE) \
+		$(AWS_ENDPOINT) >/dev/null 2>&1 || true
+endif
+
+_runtime-up:
+	@if [ "$(RUNTIME)" = "docker" ]; then \
+		set -euo pipefail; \
+		echo "[runtime] Starting dockerized test deps via $(DOCKER_COMPOSE_FILE)"; \
+		$(DOCKER_COMPOSE) up -d --build; \
+		$(MAKE) -f $(SELF) --no-print-directory wait-localstack; \
+		$(MAKE) -f $(SELF) --no-print-directory create-s3; \
+		$(MAKE) -f $(SELF) --no-print-directory create-dynamodb; \
+	fi
+
+_runtime-down:
+	@if [ "$(RUNTIME)" = "docker" ]; then \
+		set -euo pipefail; \
+		echo "[runtime] Cleaning LocalStack resources"; \
+		$(MAKE) -f $(SELF) --no-print-directory delete-dynamodb; \
+		$(MAKE) -f $(SELF) --no-print-directory delete-s3; \
+		echo "[runtime] Stopping dockerized test deps"; \
+		$(DOCKER_COMPOSE) down --remove-orphans --volumes; \
+	fi
 
 _exec-tests:
 	@set -euo pipefail; \
@@ -176,7 +196,6 @@ test:
 	@STATUS=0; \
 	$(MAKE) -f $(SELF) --no-print-directory setup || STATUS=$$?; \
 	if [ $$STATUS -eq 0 ]; then $(MAKE) -f $(SELF) --no-print-directory _runtime-up || STATUS=$$?; fi; \
-	if [ $$STATUS -eq 0 ]; then $(MAKE) -f $(SELF) --no-print-directory _infra || STATUS=$$?; fi; \
 	if [ $$STATUS -eq 0 ]; then $(MAKE) -f $(SELF) --no-print-directory _exec-tests || STATUS=$$?; fi; \
 	RUNTIME=$(RUNTIME) $(MAKE) -f $(SELF) --no-print-directory _runtime-down; \
 	exit $$STATUS

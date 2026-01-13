@@ -23,7 +23,7 @@ validate_end_date_not_forward_looking = exogenous.validate_end_date_not_forward_
     [
         (
             "macro_events",
-            "data/raw/macro/events/econdb/2024/01/02",
+            "data/raw/macro/events/FRED/2024/01/02",
             "macro_events_20240102.json",
         ),
         (
@@ -37,7 +37,7 @@ def test_p0_2_defaults_to_phase0_deterministic_layout_when_save_path_missing(
     tmp_path, artifact_type: str, expected_prefix: str, expected_filename: str
 ) -> None:
     provider = {
-        "name": "econdb" if artifact_type == "macro_events" else "fmp",
+        "name": "FRED" if artifact_type == "macro_events" else "fmp",
         "artifact_type": artifact_type,
         "url_template": "https://example.invalid/{year}/{month}/{day}.json",
         # Intentionally omit save_path: implementation should use deterministic default.
@@ -73,7 +73,7 @@ def test_p0_2_defaults_to_phase0_deterministic_layout_when_save_path_missing(
 
 def test_p0_2_uploads_sidecar_metadata_with_macro_news_schema_and_utc_binding(tmp_path) -> None:
     provider = {
-        "name": "econdb",
+        "name": "FRED",
         "artifact_type": "macro_events",
         "url_template": "https://example.invalid/{year}/{month}/{day}.json",
     }
@@ -131,7 +131,7 @@ def test_p0_2_uploads_sidecar_metadata_with_macro_news_schema_and_utc_binding(tm
 @pytest.mark.parametrize("exists_already", [False, True])
 def test_p0_2_idempotence_upload_or_skip(tmp_path, exists_already: bool) -> None:
     provider = {
-        "name": "econdb",
+        "name": "FRED",
         "artifact_type": "macro_events",
         "url_template": "https://example.invalid/{year}/{month}/{day}.json",
     }
