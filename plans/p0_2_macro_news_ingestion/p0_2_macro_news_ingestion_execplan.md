@@ -140,6 +140,18 @@ This section describes how to implement Task 0.2 strictly within Phase 0 rules (
 
 Implementation must follow the design in `plans/p0_2_macro_news_ingestion/p0_2_macro_news_ingestion_design.md`.
 
+### Verification status (Lead review)
+
+- [x] (2026-01-13) Implementation verified against design + acceptance criteria.
+  - Implementation: https://github.com/mbellary/QF-downloader/commit/3414e2f
+  - ExecPlan update: https://github.com/mbellary/QF-downloader/commit/8845eeb
+  - Confirmed:
+    - Q0.7 macro provider allowlist enforcement (rejects non-allowlisted providers)
+    - `enabled=false` enforcement (providers cannot be ingested when disabled)
+    - No forward-looking end dates enforced in downloader layer (not CLI-only)
+    - Sidecar metadata includes fetched/request/content fields and redacts secrets
+    - Mechanical-only news normalization with preserved `news_<YYYYMMDD>.raw` when content changes
+
 ### Milestone 1 — Add Phase 0.2 configuration contracts under `config/`
 
 At the end of this milestone, the repository has explicit vendor and secrets configuration locations matching the Task 0.2 statement.
@@ -284,6 +296,12 @@ Lint/format and tests:
     make -f Makefile.test check
     make -f Makefile.test test SUITE=unit
 
+  Lead verification run (2026-01-13):
+
+    make -f Makefile.test check
+    make -f Makefile.test test SUITE=unit
+    make -f Makefile.test test SUITE=integration RUNTIME=docker
+
 Example usage (to be implemented by this plan):
 
     uv run --dev -- python -m qf_downloader.cli list-providers --providers-file config/vendors/macro_feeds.json
@@ -323,6 +341,11 @@ Acceptance should be phrased as behavior a human can verify:
 
   - `make -f Makefile.test test SUITE=unit` passes
   - any new tests for Phase 0.2 fail before the implementation and pass after.
+
+Lead verification evidence (2026-01-13):
+
+- [x] Unit suite passes: `make -f Makefile.test test SUITE=unit`
+- [x] Integration suite passes (LocalStack): `make -f Makefile.test test SUITE=integration RUNTIME=docker`
 
 ## Idempotence and Recovery
 
