@@ -1,0 +1,59 @@
+{
+  "providers": [
+    {
+      "name": "FRED",
+      "enabled": true,
+      "artifact_type": "macro_events",
+      "url_template": "https://api.stlouisfed.org/fred/series/observations",
+      "params": {
+        "series_id": "CPIAUCSL",
+        "observation_start": "{start_date}" ,
+        "observation_end": "{end_date}",
+        "file_type": "json"
+      },
+      "auth" : {
+        "type": "query_api_key",
+        "key_param_name": "api_key",
+        "api_key_env": "FRED_API_KEY"
+      },
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      }
+    },
+    {
+      "name": "macro_ecb_policy_rate",
+      "enabled": true,
+      "artifact_type": "macro_events",
+      "url_template": "https://data-api.ecb.europa.eu/service/data/FM.M.U2.EUR.4F.KR.MRR_FR.LEV",
+      "params": {
+          "startPeriod": "{start_date}",
+          "endPeriod": "{end_date}",
+          "format": "jsondata"
+      },
+      "auth" :{},
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      }
+    },
+    {
+      "name": "macro_tradingeconomics_calendar",
+      "enabled": true,
+      "artifact_type": "macro_events",
+      "url_template": "https://api.tradingeconomics.com/calendar",
+      "params": {
+        "country": "united states,euro area",
+        "importance": "2,3",
+        "start": "{start_date}",
+        "end": "{end_date}",
+        "c": "guest:guest"
+      },
+      "auth" : {},
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      }
+    }
+  ]
+}

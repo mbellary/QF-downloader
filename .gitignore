@@ -16,6 +16,9 @@ localstack_data/*
 # Runtime-generated Phase 0.1 roll-up manifest
 pipelines/ingestion/fx/metadata.json
 
+# Runtime-generated Phase 0.2 roll-up manifest
+pipelines/ingestion/macro_news/metadata.json
+
 data/raw/*
 data/customer/*
 
@@ -28,3 +31,6 @@ config/secrets/*.json
 # Coverage artifacts
 .coverage
 coverage.xml
+
+# env files
+src/qf_downloader/.env.dev

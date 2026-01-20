@@ -1,0 +1,45 @@
+{
+  "artifact_type": "macro_events",
+  "content": {
+    "bytes": 372,
+    "content_type": "application/json; charset=UTF-8",
+    "sha256": "20b7073c8e9efedfb7f059169dfc451da103e141bef76f817aef1429dbfe2519"
+  },
+  "fetched_at_utc": "2026-01-20T13:00:52.160070+00:00",
+  "hashes": {
+    "sha256": "20b7073c8e9efedfb7f059169dfc451da103e141bef76f817aef1429dbfe2519"
+  },
+  "ingested_at_utc": "2026-01-20T13:00:52.967383+00:00",
+  "partition_date_utc": "2025-01-02",
+  "provider": "FRED",
+  "quant_contracts": {
+    "q0_1_effective_date": "2026-01-02",
+    "q0_1_return_calculation_path": "docs/quant/return_calculation.yaml",
+    "q0_1_return_calculation_sha256": "39ea438965c6676e391599abd4d28f34afcbb2ecc5ec37c5e6c7171f2d18293b",
+    "timezone": "UTC"
+  },
+  "request": {
+    "headers_redacted": {
+      "Accept": "*/*",
+      "User-Agent": "Mozilla/5.0"
+    },
+    "http_method": "GET",
+    "params_redacted": {
+      "api_key": "REDACTED",
+      "file_type": "json",
+      "observation_end": "2025-01-02",
+      "observation_start": "2025-01-02",
+      "series_id": "CPIAUCSL"
+    },
+    "partition_end_date_utc": "2025-01-02",
+    "partition_start_date_utc": "2025-01-02",
+    "url": "https://api.stlouisfed.org/fred/series/observations"
+  },
+  "schema_id": "infra.phase0.macro_news_ingestion",
+  "schema_version": "1.0.0",
+  "storage": {
+    "local_path": "data/data/raw/macro/events/FRED/2025/01/02/macro_events_20250102.json",
+    "s3_bucket": "fx-ml-data",
+    "s3_key": "data/raw/macro/events/FRED/2025/01/02/macro_events_20250102.json"
+  }
+}

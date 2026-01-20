@@ -1,0 +1,16 @@
+schema_id: infra.phase0.macro_news_ingestion
+schema_version: 1.0.0
+purpose: Raw macro events and news ingestion (Phase 0.2)
+constraints:
+  - no_interpretation: true
+  - timezone: UTC
+  - no_forward_looking_partitions: true
+required_fields:
+  - schema_id
+  - schema_version
+  - provider
+  - artifact_type
+  - partition_date_utc
+  - hashes.sha256
+  - quant_contracts.q0_1_return_calculation_sha256
+  - quant_contracts.timezone
