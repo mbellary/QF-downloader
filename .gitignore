@@ -31,3 +31,6 @@ config/secrets/*.json
 # Coverage artifacts
 .coverage
 coverage.xml
+
+# env files
+src/qf_downloader/.env.dev
