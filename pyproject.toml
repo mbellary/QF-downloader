@@ -17,6 +17,10 @@ dependencies = [
     "PyYAML>=6.0",
     "tenacity>=8.2.2",
     "awscli-local>=0.22.2",
+    "google-api-python-client>=2.116.0",
+    "google-auth>=2.27.0",
+    "google-auth-httplib2>=0.2.0",
+    "google-auth-oauthlib>=1.2.0",
 ]
 
 [project.optional-dependencies]

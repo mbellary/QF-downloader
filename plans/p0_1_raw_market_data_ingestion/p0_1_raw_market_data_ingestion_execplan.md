@@ -29,6 +29,9 @@ Ensure raw market data is ingested once, timestamped once, and never reinterpret
 ### Inputs
 
 - Vendor API credentials: `/config/secrets/fx_api_keys.json` (Data Engineering)
+- Google Drive credentials (optional, for Google Drive-based FX providers):
+  - `/config/secrets/google_drive_service_account.json` (recommended for non-interactive runs)
+  - `/config/secrets/google_drive_authorized_user.json` (OAuth authorized-user JSON w/ refresh token)
 - Vendor endpoint specs: `/config/vendors/fx_providers.json` (Data Engineering)
 - Return calculation rules: `docs/quant/return_calculation.yaml` (Quant Q0.1)
 - Session boundary rules: `docs/quant/return_calculation.yaml` (Quant Q0.1)
@@ -86,6 +89,15 @@ Ensure raw market data is ingested once, timestamped once, and never reinterpret
 
 - [x] (2026-01-06) Validation: `make check` and `make test SUITE=unit` pass.
 
+- [x] (2026-02-02) Added Google Drive provider support for Phase 0.1 FX ingestion:
+  - Provider schema: `source: "google_drive"` (aliases: `gdrive`, `google-drive`) with a `google_drive` config block.
+  - Resolution and download: Drive folders/files are resolved at runtime and recorded as `gdrive://<file_id>` in sidecar metadata.
+  - Yearly backfill support: `google_drive.granularity: "year"` backfills one artifact per year.
+  - ZIP handling: optional `google_drive.extract_csv: true` extracts the first `.csv` from a downloaded ZIP.
+  - Code: `src/qf_downloader/downloader.py`, `src/qf_downloader/google_drive_client.py`
+  - Canonical sample provider: `config/vendors/fx_providers.json` (`google_drive_fx_1m`, disabled by default)
+  - Unit tests: `tests/unit/test_provider_downloader.py` covers Drive downloads and ZIP→CSV extraction.
+
 ## Surprises & Discoveries
 
 - Observation: The Quant Q0.1 spec file at `docs/quant/return_calculation.yaml` is JSON content stored in a `.yaml` file. YAML 1.2 parsers can load JSON, so `yaml.safe_load` is acceptable, but this should be called out explicitly in code/docstrings.
@@ -93,6 +105,9 @@ Ensure raw market data is ingested once, timestamped once, and never reinterpret
 
 - Observation: Current `src/qf_downloader/providers.yaml` mixes FX tick/OHLCV providers and macro providers. Canonical Phase 0.1 config is now `config/vendors/fx_providers.json`; legacy YAML is deprecated.
   Evidence: providers include `econdb` and `fmp` entries of type `macro`.
+
+- Observation: Google Drive ingestion is intentionally implemented as a non-HTTP provider path (no `url_template`), but still produces the same Phase 0.1 provenance artifacts (raw bytes + sidecar metadata + manifest) by recording a resolved `gdrive://<file_id>` URL.
+  Evidence: `ProviderDownloader._fetch_google_drive_bytes` returns `("gdrive://...", bytes)`.
 
 ## Decision Log
 
@@ -108,6 +123,10 @@ Ensure raw market data is ingested once, timestamped once, and never reinterpret
   Rationale: Program Manager workflow requires Issue → Branch → PR traceability; this issue will remain the canonical artifact for Phase 0.1 execution.
   Date/Author: 2026-01-05 / Copilot
 
+- Decision: Keep Google Drive support as an optional Phase 0.1 provider source rather than a separate ingestion pipeline.
+  Rationale: The Phase 0.1 contract is about deterministic raw-byte ingestion + metadata; Drive is another transport that can feed the same contract while preserving idempotence, layout, and provenance.
+  Date/Author: 2026-02-02 / Copilot
+
 ## Outcomes & Retrospective
 
 - Implemented Phase 0.1 end-to-end (unit + LocalStack integration verified on Windows).
@@ -121,6 +140,7 @@ Key modules:
 
 - `src/qf_downloader/cli.py`: Typer CLI with `list-providers`, `run` (polling), and `backfill`.
 - `src/qf_downloader/downloader.py`: `ProviderDownloader` which formats a provider `url_template`, fetches bytes with `aiohttp`, deduplicates via SQLite (`DownloadDB`), uploads to S3 (`S3Client`), and indexes the file in DynamoDB (`S3Indexer`).
+- `src/qf_downloader/google_drive_client.py`: isolated Google Drive v3 client wrapper used by `ProviderDownloader` when `source` is Google Drive.
 - `src/qf_downloader/db.py`: SQLite ledger for downloaded artifacts and a `fetch_status` table for last successful fetch timestamps.
 - `src/qf_downloader/storage.py`: S3 client wrapper using `aioboto3`, supporting LocalStack when `APP_ENV=localstack`.
 - `src/qf_downloader/s3_indexer.py`: DynamoDB indexer storing (pair, provider, date, s3_key) records.
@@ -165,6 +185,22 @@ At the end of this milestone, the ingestion path layout matches the task outputs
 - Tick artifacts land under `data/raw/fx/tick/<provider>/<pair>/<YYYY>/<MM>/<DD>/...`
 - OHLCV artifacts land under `data/raw/fx/ohlcv/<provider>/<pair>/<YYYY>/<MM>/<DD>/...`
 
+Google Drive ingestion path layout (Phase 0.1):
+
+- Google Drive providers still write into the same Phase 0.1 raw FX layout roots (`data/raw/fx/<artifact_type>/...`) and produce the same sidecar metadata and DynamoDB index entries.
+- The *exact* partitioning (day vs year) is controlled by the provider’s `save_path` and by `google_drive.granularity`:
+  - `google_drive.granularity: "day"` (default): recommended `save_path` includes `{year}/{month}/{day}`.
+    - Example prefix: `data/raw/fx/ohlcv/google_drive_fx_1m/EURUSD/2024/01/02/`
+  - `google_drive.granularity: "year"`: recommended `save_path` includes `{year}` only.
+    - Example prefix (as in `config/vendors/fx_providers.json`): `data/raw/fx/ohlcv/google_drive_fx_1m/EURUSD/2007/`
+
+Notes:
+
+- When `extract_csv=true`, the artifact filename is typically a `.csv` (either via `output_filename_template` or a `.csv` fallback), so the full key looks like:
+  - `data/raw/fx/ohlcv/google_drive_fx_1m/EURUSD/2007/DAT_ASCII_EURUSD_M1_2007.csv`
+- If a Google Drive provider omits `save_path`, the downloader’s deterministic default (day-partitioned) is used:
+  - `data/raw/fx/<artifact_type>/<provider>/<pair>/<YYYY>/<MM>/<DD>/<pair>_<YYYYMMDD>.<ext>`
+
 Work:
 
 - Extend provider configuration to include:
@@ -178,6 +214,16 @@ Work:
   - Ensure URL template formatting supports `{base}` and `{quote}` in addition to `{pair}`.
   - Add explicit handling for query params / API keys when provider config includes them.
   - Ensure `save_path`/S3 key prefix is derived from artifact_type + provider + pair + date (deterministic and contract-bound).
+
+- Add optional non-HTTP provider sources (Google Drive):
+
+  - If `source` (or `protocol`) is `google_drive`/`gdrive`/`google-drive`, ingestion resolves a Drive file and downloads bytes via Google Drive v3.
+  - Provider config supports a `google_drive` block with:
+    - `root_folder_id` (or `folder_id`) and/or `root_folder_name` (best-effort lookup)
+    - `subfolder_name_template`, `file_name_template` (folder+file lookup)
+    - `file_id_template` (skip folder listing and download by id)
+    - `granularity: day|year` to control backfill partitioning
+    - `extract_csv` and `output_filename_template` for ZIP→CSV normalization while preserving raw-bytes immutability at the transport layer.
 
 - Update the DynamoDB index (`src/qf_downloader/s3_indexer.py` usage) to include `artifact_type` as an attribute (and optionally in the partition key), so tick and OHLCV can be queried independently.
 
@@ -231,6 +277,11 @@ Work:
   - URL template formatting for `{pair}` and `{base}`/`{quote}`.
   - Metadata generation includes UTC binding and Quant spec hash.
   - Idempotence: repeated ingest attempts do not create duplicate DB rows for the same checksum.
+
+- Add unit tests to cover Google Drive provider mechanics (no external network calls):
+
+  - `source: google_drive` downloads via a mocked `GoogleDriveClient` and uploads the raw bytes.
+  - ZIP payload with `extract_csv=true` extracts the first `.csv` and uploads a `.csv` artifact.
 
 - (Optional but recommended) Add an integration test under `tests/integration/` using LocalStack verifying:
 
@@ -345,6 +396,14 @@ New/changed interfaces to define (names are prescriptive):
 
   - Extend `_download_single_day` to accept `artifact_type: str` and to write sidecar metadata.
   - Extend URL formatting to support `{base}` and `{quote}`.
+
+Google Drive dependencies and credential resolution:
+
+- Runtime uses Google Drive v3 via `google-api-python-client` + `google-auth`.
+- Auth modes:
+  - `auth.type: google_drive_service_account` with `service_account_file` (or env `GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE`, default path under `config/secrets/`).
+  - `auth.type: google_drive_authorized_user` with `authorized_user_file` (or env `GOOGLE_DRIVE_AUTHORIZED_USER_FILE`, default path under `config/secrets/`).
+- Default scope is Drive read-only unless overridden via `auth.scopes`.
 
 
 Change note: This ExecPlan file was created on 2026-01-05 to unblock Phase 0.1 implementation. It is intentionally conservative (metadata-first) to stay Phase 0 compliant while acknowledging that full tick decoding is provider-specific and may be introduced incrementally.

@@ -1,12 +1,24 @@
 {
   "schema_id": "quant-spec.q0_11.kpi_thresholds",
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "task_id": "Q0.11",
-  "effective_date": "2026-01-02",
+  "effective_date": "2026-01-30",
   "thresholds": [
+    {
+      "phase": "PHASE_0",
+      "required": [
+        {"kpi_id": "TIR", "type": "min_absolute", "min": 0.999},
+        {"kpi_id": "BGR", "type": "max_absolute", "max": 0.001},
+        {"kpi_id": "SCS", "type": "max_absolute", "max": 0.0001},
+        {"kpi_id": "SCR", "type": "min_absolute", "min": 1.0},
+        {"kpi_id": "FICR", "type": "min_absolute", "min": 1.0},
+        {"kpi_id": "RLCR", "type": "min_absolute", "min": 1.0}
+      ]
+    },
     {
       "phase": "PHASE_1",
       "required": [
+        {"kpi_id": "RRC", "type": "min_absolute", "min": 1.0},
         {"kpi_id": "NER", "type": "relative_to_baseline", "delta_min": 0.0},
         {"kpi_id": "QLIKE", "type": "beat_baseline", "baseline": "naive_rolling_rv"},
         {"kpi_id": "REGIME_STABILITY", "type": "min_absolute", "min": 0.0}
@@ -16,6 +28,10 @@
       "phase": "PHASE_2",
       "required": [
         {"kpi_id": "HR_COND", "type": "gt_other", "other_kpi": "HR_UNCOND"},
+        {"kpi_id": "VCC", "type": "min_absolute", "min": 0.0},
+        {"kpi_id": "PCG", "type": "min_absolute", "min": 0.0},
+        {"kpi_id": "MCG", "type": "min_absolute", "min": 0.0},
+        {"kpi_id": "CSS", "type": "min_absolute", "min": 0.0},
         {"kpi_id": "REGIME_STABILITY", "type": "min_absolute", "min": 0.0}
       ]
     },
@@ -23,21 +39,28 @@
       "phase": "PHASE_3",
       "required": [
         {"kpi_id": "NG", "type": "min_absolute", "min": 0.0},
-        {"kpi_id": "VDR", "type": "min_absolute", "min": 0.0}
+        {"kpi_id": "VDR", "type": "min_absolute", "min": 0.0},
+        {"kpi_id": "LNDR", "type": "max_absolute", "max": 0.25},
+        {"kpi_id": "FSWD", "type": "max_absolute", "max": 0.0}
       ]
     },
     {
       "phase": "PHASE_4",
       "required": [
         {"kpi_id": "NG", "type": "max_degradation", "tolerance": 0.0},
-        {"kpi_id": "QLIKE", "type": "max_degradation", "tolerance": 0.0}
+        {"kpi_id": "QLIKE", "type": "max_degradation", "tolerance": 0.0},
+        {"kpi_id": "VCC", "type": "max_degradation", "tolerance": 0.0},
+        {"kpi_id": "LNDR", "type": "max_degradation", "tolerance": 0.0},
+        {"kpi_id": "FSWD", "type": "max_degradation", "tolerance": 0.0}
       ]
     },
     {
       "phase": "PHASE_5",
       "required": [
         {"kpi_id": "NER", "type": "max_degradation", "tolerance": 0.0},
-        {"kpi_id": "REGIME_STABILITY", "type": "max_degradation", "tolerance": 0.0}
+        {"kpi_id": "QLIKE", "type": "max_degradation", "tolerance": 0.0},
+        {"kpi_id": "REGIME_STABILITY", "type": "max_degradation", "tolerance": 0.0},
+        {"kpi_id": "RCR", "type": "max_degradation", "tolerance": 0.0}
       ]
     }
   ],

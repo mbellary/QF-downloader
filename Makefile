@@ -20,23 +20,6 @@ ifeq ($(APP_ENV),localstack)
 	USE_LOCALSTACK := true
 endif
 
-# --------------------------------------------------
-# AWS / LocalStack
-# --------------------------------------------------
-AWS_REGION := ap-south-1
-S3_BUCKET := fx-ml-data
-RAW_FILE_INDEX_TABLE := raw_file_index
-AWS := aws
-
-ifeq ($(USE_LOCALSTACK),true)
-AWS_ENDPOINT := --endpoint-url=http://localhost:4566
-AWS_REGION_ENV := AWS_DEFAULT_REGION=$(AWS_REGION)
-AWS_CREDS := AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_SESSION_TOKEN=
-else
-AWS_ENDPOINT :=
-AWS_REGION_ENV :=
-AWS_CREDS :=
-endif
 
 # --------------------------------------------------
 # Docker
@@ -69,9 +52,6 @@ help:
 	@echo "  make down            Stop dev stack"
 	@echo "  make clean           Remove stack + volumes"
 	@echo ""
-	@echo "Infra:"
-	@echo "  make infra           Create S3 + DynamoDB (LocalStack)"
-	@echo ""
 	@echo "Run:"
 	@echo "  APP_ENV=localstack make run <cmd> -- <args>"
 	@echo ""
@@ -94,7 +74,7 @@ build:
 up:
 	@echo "▶ Starting dev stack (APP_ENV=$(APP_ENV))"
 	APP_ENV=$(APP_ENV) \
-	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) up -d $(DEPS)
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) up -d
 
 .PHONY: down
 down:
@@ -106,68 +86,12 @@ clean:
 	@echo "▶ Cleaning dev stack"
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) down -v --remove-orphans
 
-# --------------------------------------------------
-# LocalStack readiness (Option A – AWS-native)
-# --------------------------------------------------
-.PHONY: wait-localstack
-wait-localstack:
-ifeq ($(USE_LOCALSTACK),true)
-	@echo "▶ Waiting for LocalStack AWS APIs (S3, DynamoDB)"
-	@until \
-		$(AWS) s3 ls --endpoint-url=http://localhost:4566 >/dev/null 2>&1 && \
-		$(AWS) dynamodb list-tables --endpoint-url=http://localhost:4566 >/dev/null 2>&1; do \
-		sleep 2; \
-	done
-	@echo "✔ LocalStack S3 and DynamoDB are ready"
-endif
-
-# --------------------------------------------------
-# Infra bootstrap
-# --------------------------------------------------
-.PHONY: create-s3
-create-s3:
-ifeq ($(USE_LOCALSTACK),true)
-	@echo "▶ Ensuring S3 bucket $(S3_BUCKET) exists"
-	@$(AWS) s3api head-bucket --bucket $(S3_BUCKET) $(AWS_ENDPOINT) 2>/dev/null || \
-	$(AWS) s3api create-bucket \
-		--bucket $(S3_BUCKET) \
-		--region $(AWS_REGION) \
-		--create-bucket-configuration LocationConstraint=$(AWS_REGION) \
-		$(AWS_ENDPOINT)
-endif
-
-.PHONY: create-dynamodb
-create-dynamodb:
-ifeq ($(USE_LOCALSTACK),true)
-	@echo "▶ Ensuring DynamoDB table $(RAW_FILE_INDEX_TABLE) exists"
-	@$(AWS_CREDS) $(AWS_REGION_ENV) $(AWS) dynamodb list-tables \
-		$(AWS_ENDPOINT) \
-		--output text \
-		--query 'TableNames' | grep -w $(RAW_FILE_INDEX_TABLE) >/dev/null 2>&1 || \
-	( \
-		echo "▶ Creating DynamoDB table $(RAW_FILE_INDEX_TABLE)"; \
-		$(AWS_CREDS) $(AWS_REGION_ENV) $(AWS) dynamodb create-table \
-			--table-name $(RAW_FILE_INDEX_TABLE) \
-			--attribute-definitions \
-				AttributeName=pk,AttributeType=S \
-				AttributeName=sk,AttributeType=S \
-			--key-schema \
-				AttributeName=pk,KeyType=HASH \
-				AttributeName=sk,KeyType=RANGE \
-			--provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
-			$(AWS_ENDPOINT); \
-	)
-endif
-
-
-.PHONY: infra
-infra: wait-localstack create-s3 create-dynamodb
 
 # --------------------------------------------------
 # Run
 # --------------------------------------------------
 .PHONY: run
-run: build up infra
+run: build up
 	@echo "▶ Running: $(ARGS)"
 	APP_ENV=$(APP_ENV) \
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) run --rm \
@@ -191,12 +115,12 @@ shell:
 # --------------------------------------------------
 .PHONY: lint
 lint:
-	$(RUFF) check .
-	$(RUFF) format --check .
+	$(RUFF) check --fix .
+	$(RUFF) format .
 
 .PHONY: test
 test:
-	$(MAKE) -f Makefile.test all
+	$(MAKE) -f Makefile.test $(ARGS)
 
 # --------------------------------------------------
 # Make arg passthrough

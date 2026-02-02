@@ -1,15 +1,92 @@
 {
   "schema_id": "quant-spec.q0_11.system_kpis",
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "task_id": "Q0.11",
-  "effective_date": "2026-01-02",
+  "effective_date": "2026-01-30",
+  "authority": {
+    "machine_readable_is_authoritative": true,
+    "markdown_is_explanatory_only": true
+  },
   "guiding_principle": {
     "returns_are_outcome": true,
-    "capabilities_are_primary": ["noise_separation", "volatility_accuracy", "regime_stability"],
-    "rejection_rule": "Return improvements without capability improvements are invalid."
+    "capabilities_are_primary": ["data_integrity", "noise_separation", "volatility_accuracy", "regime_stability"],
+    "rejection_rule": "Return improvements without capability improvements are invalid.",
+    "governance_rule": "Fusion (including LLM modifiers) must not dominate decisions and must not violate the noise-first priority order."
   },
-  "metric_hierarchy": ["NOISE", "VOLATILITY", "REGIME", "CONDITIONAL_ALPHA", "RETURNS"],
+  "metric_hierarchy": [
+    "DATA_INTEGRITY_TIMEBASE",
+    "NOISE",
+    "VOLATILITY",
+    "REGIME",
+    "CONDITIONAL_ALPHA",
+    "FUSION_GOVERNANCE",
+    "RETURNS"
+  ],
   "kpis": [
+    {
+      "id": "TIR",
+      "category": "DATA_INTEGRITY_TIMEBASE",
+      "name": "Timestamp Integrity Rate",
+      "definition": "TIR = ValidMonotonicNonDuplicatedBars / TotalBars (after timezone/session normalization)",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1},
+      "failure_modes": ["non_monotonic_time", "duplicate_bars", "timezone_normalization_error"]
+    },
+    {
+      "id": "BGR",
+      "category": "DATA_INTEGRITY_TIMEBASE",
+      "name": "Bar Gap Rate",
+      "definition": "BGR = MissingExpectedBars / ExpectedBars (by instrument and session; aggregated to a scalar gap_rate)",
+      "optimization_direction": "minimize",
+      "valid_range": {"min": 0, "max": 1},
+      "failure_modes": ["unlogged_gaps", "calendar_mismatch", "session_boundary_error"]
+    },
+    {
+      "id": "SCS",
+      "category": "DATA_INTEGRITY_TIMEBASE",
+      "name": "Spread & Quote Sanity",
+      "definition": "SCS = InvalidQuoteRate where invalid includes (bid > ask) OR (spread < 0) OR (spread spike beyond policy)",
+      "optimization_direction": "minimize",
+      "valid_range": {"min": 0, "max": 1},
+      "failure_modes": ["bid_ask_inversion", "negative_spread", "spread_spike_unbounded"]
+    },
+    {
+      "id": "RRC",
+      "category": "DATA_INTEGRITY_TIMEBASE",
+      "name": "Return Reconstruction Consistency",
+      "definition": "RRC = 1 - ReturnMismatchRate, where mismatches are detected by recomputing returns from stored prices and verifying deterministic hashes on sampled windows",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1},
+      "failure_modes": ["price_return_inconsistency", "hash_audit_failure"]
+    },
+    {
+      "id": "SCR",
+      "category": "DATA_INTEGRITY_TIMEBASE",
+      "name": "Contract Schema Compliance Rate",
+      "definition": "SCR = ValidArtifacts / TotalArtifacts (strict validation; warnings-only acceptance is forbidden)",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1},
+      "failure_modes": ["schema_validation_failure", "warnings_accepted_as_success"]
+    },
+    {
+      "id": "FICR",
+      "category": "DATA_INTEGRITY_TIMEBASE",
+      "name": "Feature Intent Completeness Rate",
+      "definition": "FICR = FeaturesWithRequiredIntentUsageLeakageMetadata / TotalRegisteredFeatures",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1},
+      "failure_modes": ["missing_intent_metadata", "feature_leakage_untracked"]
+    },
+    {
+      "id": "RLCR",
+      "category": "DATA_INTEGRITY_TIMEBASE",
+      "name": "Registry Lineage Completeness Rate",
+      "definition": "RLCR = ArtifactsWithRequiredLineagePointers / TotalArtifactsEligibleForDownstreamUse",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1},
+      "failure_modes": ["missing_spec_links", "missing_hashes", "missing_reports"]
+    },
+
     {
       "id": "NER",
       "category": "NOISE",
@@ -34,8 +111,10 @@
       "name": "Jump Containment Ratio",
       "definition": "JCR = Jumps_filtered_out / Total_detected_jumps",
       "optimization_direction": "maximize",
-      "valid_range": {"min": 0, "max": 1}
+      "valid_range": {"min": 0, "max": 1},
+      "failure_modes": ["jump_detector_overfires", "jump_detector_misses"]
     },
+
     {
       "id": "QLIKE",
       "category": "VOLATILITY",
@@ -51,13 +130,66 @@
       "name": "Volatility Dominance Ratio",
       "definition": "VDR = Decisions_gated_by_sigma / Total_decisions",
       "optimization_direction": "maximize",
-      "valid_range": {"min": 0, "max": 1}
+      "valid_range": {"min": 0, "max": 1},
+      "failure_modes": ["sigma_gate_bypassed"]
     },
+    {
+      "id": "VCC",
+      "category": "VOLATILITY",
+      "name": "Volatility Calibration & Coverage",
+      "definition": "VCC is a calibration score derived from PIT uniformity (density forecasts) or quantile coverage error (quantile forecasts), plus rolling calibration stability.",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1},
+      "failure_modes": ["miscalibrated_sigma_distribution", "regime_specific_miscalibration"]
+    },
+
     {
       "id": "REGIME_STABILITY",
       "category": "REGIME",
       "name": "Regime Stability",
-      "definition": "A composite of persistence, churn, and transition-matrix stability (must be defined by implementation using the threshold schema).",
+      "definition": "A composite of persistence, churn, and transition-matrix stability. Implementations MUST compute it deterministically from declared sub-metrics (e.g., RCR and transition stability).",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1},
+      "failure_modes": ["regime_churn", "transition_instability"]
+    },
+    {
+      "id": "RPS",
+      "category": "REGIME",
+      "name": "Regime Predictability Score",
+      "definition": "A normalized predictability score for regimes (e.g., out-of-sample regime classification accuracy and/or mutual information between regimes and sigma/epsilon).",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1}
+    },
+    {
+      "id": "RCC",
+      "category": "REGIME",
+      "name": "Regime Conditional Consistency",
+      "definition": "A stability score for model behavior within regimes (e.g., bounded dispersion of Sharpe or hit-rate across regimes).",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1}
+    },
+    {
+      "id": "RCR",
+      "category": "REGIME",
+      "name": "Regime Churn Rate",
+      "definition": "RCR = RegimeStateChanges / TimeUnits (reported by instrument and aggregated; higher is worse)",
+      "optimization_direction": "minimize",
+      "valid_range": {"min": 0, "max": null}
+    },
+    {
+      "id": "CSS",
+      "category": "REGIME",
+      "name": "Correlation Stress Stability",
+      "definition": "A stress-stability score for cross-asset dependency forecasts under high-sigma / tail windows (higher is better).",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1}
+    },
+
+    {
+      "id": "HR_UNCOND",
+      "category": "CONDITIONAL_ALPHA",
+      "name": "Unconditional Hit Ratio",
+      "definition": "HR_uncond = P(correct)",
       "optimization_direction": "maximize",
       "valid_range": {"min": 0, "max": 1}
     },
@@ -70,12 +202,74 @@
       "valid_range": {"min": 0, "max": 1}
     },
     {
+      "id": "ADHL",
+      "category": "CONDITIONAL_ALPHA",
+      "name": "Alpha Decay Half-Life",
+      "definition": "A half-life statistic for alpha strength conditioned on allowed vs disallowed regimes; slower decay outside allowed regimes indicates leakage risk.",
+      "optimization_direction": "minimize",
+      "valid_range": {"min": 0, "max": null}
+    },
+    {
+      "id": "PCG",
+      "category": "CONDITIONAL_ALPHA",
+      "name": "Probabilistic Calibration Under Gates",
+      "definition": "A calibration score for directional probabilities computed only within allowed (epsilon/sigma/regime) conditions.",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1}
+    },
+    {
+      "id": "MCG",
+      "category": "CONDITIONAL_ALPHA",
+      "name": "Magnitude Calibration Under Gates",
+      "definition": "A calibration score for magnitude / quantile forecasts computed only within allowed (sigma/regime) conditions.",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": 0, "max": 1}
+    },
+
+    {
+      "id": "LNDR",
+      "category": "FUSION_GOVERNANCE",
+      "name": "LLM Non-Dominance Ratio",
+      "definition": "LNDR = #(Decision_with_LLM != Decision_without_LLM) / #Decisions, measured via ablation under identical inputs.",
+      "optimization_direction": "minimize",
+      "valid_range": {"min": 0, "max": 1},
+      "failure_modes": ["llm_dominates_decision", "ablation_not_performed"]
+    },
+    {
+      "id": "FSWD",
+      "category": "FUSION_GOVERNANCE",
+      "name": "Fusion Stability & Weight Drift",
+      "definition": "A stability score (or bounded drift statistic) for fusion weights and gating behavior across time and regimes; regime-agnostic flips are forbidden.",
+      "optimization_direction": "minimize",
+      "valid_range": {"min": 0, "max": null},
+      "failure_modes": ["weight_drift_unbounded", "regime_agnostic_gate_flips"]
+    },
+
+    {
       "id": "SHARPE",
       "category": "RETURNS",
       "name": "Sharpe (Return KPI)",
       "definition": "Sharpe = mean(returns) / std(returns) over window",
       "optimization_direction": "maximize",
       "valid_range": {"min": null, "max": null},
+      "gating_rule": "Only evaluated after NOISE/VOLATILITY/REGIME/CONDITIONAL_ALPHA gates pass."
+    },
+    {
+      "id": "SORTINO",
+      "category": "RETURNS",
+      "name": "Sortino (Return KPI)",
+      "definition": "Sortino = mean(returns) / std(negative_returns) over window",
+      "optimization_direction": "maximize",
+      "valid_range": {"min": null, "max": null},
+      "gating_rule": "Only evaluated after NOISE/VOLATILITY/REGIME/CONDITIONAL_ALPHA gates pass."
+    },
+    {
+      "id": "MAX_DRAWDOWN",
+      "category": "RETURNS",
+      "name": "Max Drawdown (Return KPI)",
+      "definition": "Maximum peak-to-trough drawdown over evaluation window.",
+      "optimization_direction": "minimize",
+      "valid_range": {"min": 0, "max": 1},
       "gating_rule": "Only evaluated after NOISE/VOLATILITY/REGIME/CONDITIONAL_ALPHA gates pass."
     }
   ],

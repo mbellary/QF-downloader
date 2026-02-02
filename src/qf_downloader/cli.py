@@ -98,6 +98,16 @@ def backfill(
         None, "--provider-name", help="Provider name (option). Example: --provider-name dukascopy"
     ),
     years: int = 5,
+    start_year: int | None = typer.Option(
+        None,
+        "--start-year",
+        help="Override date range: start year (inclusive). Useful for yearly-zip providers.",
+    ),
+    end_year: int | None = typer.Option(
+        None,
+        "--end-year",
+        help="Override date range: end year (inclusive). Defaults to start-year if provided.",
+    ),
     providers_file: str | None = None,
 ):
     """
@@ -116,8 +126,19 @@ def backfill(
     if not provider:
         raise RuntimeError(f"Provider '{provider_name_effective}' not found in providers config")
 
-    start = datetime.utcnow() - timedelta(days=years * 365)
-    end = datetime.utcnow()
+    if start_year is not None:
+        if end_year is None:
+            end_year = start_year
+        if end_year < start_year:
+            raise typer.BadParameter("end-year must be >= start-year")
+
+        from datetime import UTC
+
+        start = datetime(start_year, 1, 1, tzinfo=UTC)
+        end = datetime(end_year, 12, 31, tzinfo=UTC)
+    else:
+        start = datetime.utcnow() - timedelta(days=years * 365)
+        end = datetime.utcnow()
 
     asyncio.run(_do_backfill(provider, start, end))
 

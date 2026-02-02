@@ -26,7 +26,7 @@ At a high level, the downloader pipeline in `qf_downloader.downloader.ProviderDo
 
 ## Requirements
 
-- Python `>=3.13` (per `pyproject.toml`)
+- Python `>=3.11` (per `pyproject.toml`)
 - Recommended: `uv`
 - For integration tests: Docker + Docker Compose (LocalStack)
 
@@ -94,8 +94,14 @@ These artifacts are added as part of Phase 0.1 to make the ingestion contract ex
 - Sidecar metadata schema contract: `docs/infra/phase0/schemas/raw_market_ingestion.yaml`
 - Secrets scaffolding:
   - Template (committed): `config/secrets/fx_api_keys.example.json`
+  - Templates (committed):
+    - `config/secrets/google_drive_service_account.example.json`
+    - `config/secrets/google_drive_authorized_user.example.json`
   - Notes: `config/secrets/README.md`
-  - Local-only secrets file (NOT committed): `config/secrets/fx_api_keys.json`
+  - Local-only secrets files (NOT committed):
+    - `config/secrets/fx_api_keys.json`
+    - `config/secrets/google_drive_service_account.json` (if using service accounts)
+    - `config/secrets/google_drive_authorized_user.json` (if using OAuth authorized user)
 
 Secrets should be provided via environment variables in CI/production. For local development, copy the example:
 
@@ -156,6 +162,62 @@ Supported fields:
   - `type: basic` with `user_env` + `pass_env`
   - `type: query_api_key` with `api_key_env` + optional `key_param_name` (defaults to `apikey`)
 
+### Google Drive providers
+
+The downloader supports Google Drive ingestion for providers with `source` (or `protocol`) set to one of:
+
+- `google_drive`
+- `gdrive`
+- `google-drive`
+
+Google Drive downloads resolve to a concrete Drive file id at runtime; sidecar metadata records the resolved URL as `gdrive://<file_id>`.
+
+Key fields:
+
+- `source: "google_drive"` (or `protocol: "google_drive"`)
+- `google_drive` (mapping):
+  - `root_folder_id` (recommended): Google Drive folder id for the root folder
+    - Alias: `folder_id`
+  - `root_folder_name` (optional): best-effort lookup by name if you don’t know the id (folder id is preferred for determinism)
+  - `subfolder_name_template` (optional): e.g. `{pair_lower}` to match lowercase folder names
+  - `file_name_template` (optional): e.g. `DAT_ASCII_{pair}_M1_{year}.zip`
+  - `file_id_template` (optional): direct file id template (skips folder listing)
+  - `granularity` (optional):
+    - `"day"` (default): one artifact per day
+    - `"year"`: one artifact per year (useful for yearly ZIP archives)
+  - `extract_csv` (optional, bool): if `true`, treat the downloaded bytes as a ZIP and extract the first `.csv` inside
+  - `output_filename_template` (optional): controls the on-disk/S3 filename when `extract_csv=true` (e.g. `DAT_ASCII_{pair}_M1_{year}.csv`)
+- `auth`:
+  - `type: "google_drive_service_account"` (recommended for non-interactive runs)
+    - Optional: `service_account_file` (defaults to `config/secrets/google_drive_service_account.json`)
+    - Env override: `GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE`
+  - `type: "google_drive_authorized_user"` (OAuth *authorized user* JSON that includes a refresh token)
+    - Optional: `authorized_user_file` (defaults to `config/secrets/google_drive_authorized_user.json`)
+    - Env override: `GOOGLE_DRIVE_AUTHORIZED_USER_FILE`
+  - Optional for both auth types: `scopes` (string or list). Defaults to Drive read-only.
+
+Template vars available for Google Drive providers include `{pair}`, `{pair_lower}`, `{year}`, `{month}`, `{day}`.
+
+Credential setup (local development):
+
+- Service account (recommended):
+
+  ```bash
+  cp config/secrets/google_drive_service_account.example.json \
+    config/secrets/google_drive_service_account.json
+  ```
+
+  Then share the target Google Drive folder with the service account email.
+
+- Authorized user (OAuth):
+
+  ```bash
+  cp config/secrets/google_drive_authorized_user.example.json \
+    config/secrets/google_drive_authorized_user.json
+  ```
+
+  Populate it with an authorized-user credential that includes a refresh token.
+
 Notes:
 
 - The CLI and runtime now honor `enabled: false` and skip disabled providers.
@@ -182,10 +244,22 @@ Run a bounded historical backfill for a single provider:
 uv run -- python -m qf_downloader.cli backfill --provider-name dukascopy --years 3 --providers-file config/vendors/fx_providers.json
 ```
 
+Backfill with explicit years (recommended for yearly-zip providers like `google_drive_fx_1m`):
+
+```bash
+uv run -- python -m qf_downloader.cli backfill --provider-name google_drive_fx_1m --start-year 2007 --end-year 2007
+```
+
 You can also use the script entrypoint that exposes the Typer app:
 
 ```bash
 uv run worker_historical -- backfill --provider-name dukascopy --years 3
+```
+
+Or via Make (forwards args after `--`):
+
+```bash
+make run worker_historical -- backfill google_drive_fx_1m --start-year 2007 --end-year 2007
 ```
 
 ## Docker (development)
@@ -235,7 +309,7 @@ The integration suite uses LocalStack for S3 + DynamoDB.
 Run integration tests in Docker (recommended / most reproducible):
 
 ```bash
-make test SUITE=integration RUNTIME=docker
+make test -- exec SUITE=integration RUNTIME=docker
 ```
 
 This uses the repository root `docker-compose.test.yml`.
@@ -251,7 +325,7 @@ This avoids failures where `pytest` is not on `PATH` inside the container.
 Run only unit tests (no Docker):
 
 ```bash
-make test SUITE=unit
+make test -- exec SUITE=unit
 ```
 
 Run format + lint + tests together:

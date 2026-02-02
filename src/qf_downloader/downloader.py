@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import os
@@ -6,7 +7,14 @@ from pathlib import Path
 from typing import Any, Dict, Tuple
 
 import aiohttp
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import (
+    RetryError,
+    retry,
+    retry_if_exception,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from qf_downloader.config import S3_BUCKET
 from qf_downloader.db import DownloadDB
@@ -45,6 +53,16 @@ class ProviderDownloader:
     # BACKFILL: DATE RANGE
     # ---------------------------------------------------------
     async def backfill_range(self, start, end):
+        if (
+            self._is_google_drive_provider(self.provider)
+            and self._google_drive_granularity() == "year"
+        ):
+            for year in range(int(start.year), int(end.year) + 1):
+                day = datetime(year, 1, 1, tzinfo=UTC)
+                for pair in self.provider.get("supports_pairs", []):
+                    await self._download_single_day(pair, day)
+            return
+
         day = start
         while day <= end:
             for pair in self.provider.get("supports_pairs", []):
@@ -68,13 +86,16 @@ class ProviderDownloader:
 
         base, quote = self._split_pair(pair)
 
+        is_google_drive = self._is_google_drive_provider(self.provider)
+
         url_template = self.provider.get("url_template")
-        if not url_template:
+        if not url_template and not is_google_drive:
             logger.error(f"Provider {self.provider['name']} has no url_template")
             return
 
         template_vars: dict[str, str] = {
             "pair": pair,
+            "pair_lower": pair.lower(),
             "base": base,
             "quote": quote,
             "year": yyyy,
@@ -94,15 +115,25 @@ class ProviderDownloader:
             if access_key_env and "access_key" not in template_vars:
                 template_vars["access_key"] = os.getenv(str(access_key_env), "")
 
-        try:
-            url = url_template.format(**template_vars)
-        except KeyError as exc:
-            logger.error(
-                "Provider %s url_template missing placeholder: %s", self.provider.get("name"), exc
-            )
-            return {"status": "error", "url": None}
+        url: str | None
+        if is_google_drive:
+            url = None
+        else:
+            try:
+                url = url_template.format(**template_vars)
+            except KeyError as exc:
+                logger.error(
+                    "Provider %s url_template missing placeholder: %s",
+                    self.provider.get("name"),
+                    exc,
+                )
+                return {"status": "error", "url": None}
 
         filename = f"{pair}_{date}.bin"
+        if is_google_drive:
+            filename = self._google_drive_output_filename(
+                template_vars=template_vars, fallback=filename
+            )
 
         save_path_template = self.provider.get("save_path")
         if not save_path_template:
@@ -145,26 +176,35 @@ class ProviderDownloader:
         # ---------------------------------------------------------
         # FETCH
         # ---------------------------------------------------------
-        async with aiohttp.ClientSession() as session:
-            try:
-                resp, content = await self._fetch(
-                    session, method, url, params=params, headers=headers, auth=auth
+        try:
+            if is_google_drive:
+                url, content = await self._fetch_google_drive_bytes(
+                    pair=pair, day=day, template_vars=template_vars
                 )
-            except Exception as e:
-                http_status = getattr(e, "status", None)
-                logger.error(f"[{pair}] Failed {url} → {e}")
-                if artifact_type and hasattr(self.db, "record_failure"):
-                    await self.db.record_failure(
-                        provider=str(self.provider["name"]),
-                        pair=pair,
-                        date=date,
-                        artifact_type=str(artifact_type),
-                        url=url,
-                        http_status=http_status,
-                        error_type=type(e).__name__,
-                        error_message=str(e),
+            else:
+                async with aiohttp.ClientSession() as session:
+                    _resp, content = await self._fetch(
+                        session, method, url, params=params, headers=headers, auth=auth
                     )
-                return {"status": "error", "url": url}
+        except Exception as e:
+            if isinstance(e, RetryError):
+                root = e.last_attempt.exception()
+                if root is not None:
+                    e = root
+            http_status = getattr(e, "status", None)
+            logger.error(f"[{pair}] Failed {url or '(google_drive)'} → {e}")
+            if artifact_type and hasattr(self.db, "record_failure"):
+                await self.db.record_failure(
+                    provider=str(self.provider["name"]),
+                    pair=pair,
+                    date=date,
+                    artifact_type=str(artifact_type),
+                    url=url,
+                    http_status=http_status,
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                )
+            return {"status": "error", "url": url}
 
         checksum = hashlib.sha256(content).hexdigest()
 
@@ -240,6 +280,133 @@ class ProviderDownloader:
         return {"status": "uploaded", "pair": pair, "key": s3_key}
 
     @staticmethod
+    def _is_google_drive_provider(provider: Dict[str, Any]) -> bool:
+        source = str(provider.get("source") or provider.get("protocol") or "").lower().strip()
+        return source in {"google_drive", "gdrive", "google-drive"}
+
+    def _google_drive_granularity(self) -> str:
+        cfg = self.provider.get("google_drive") or {}
+        if isinstance(cfg, dict):
+            g = str(cfg.get("granularity") or "").lower().strip()
+            if g:
+                return g
+        return "day"
+
+    def _google_drive_output_filename(self, *, template_vars: dict[str, str], fallback: str) -> str:
+        cfg = self.provider.get("google_drive") or {}
+        if not isinstance(cfg, dict):
+            return fallback
+
+        out = cfg.get("output_filename_template")
+        if isinstance(out, str) and out.strip():
+            return out.format(**template_vars)
+
+        # If we are extracting a CSV from a zip, default output to .csv for readability.
+        extract_csv = bool(cfg.get("extract_csv", False))
+        if extract_csv:
+            stem = fallback.rsplit(".", 1)[0]
+            return f"{stem}.csv"
+
+        return fallback
+
+    @retry(
+        retry=retry_if_exception(lambda exc: not isinstance(exc, FileNotFoundError)),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(min=2, max=30),
+    )
+    async def _fetch_google_drive_bytes(
+        self, *, pair: str, day: datetime, template_vars: dict[str, str]
+    ) -> tuple[str, bytes]:
+        """Resolve and download a Google Drive file as bytes.
+
+        Expected provider schema:
+        - source: google_drive
+        - google_drive: {
+            root_folder_id: str (or folder_id)
+            subfolder_name_template?: str
+            file_name_template?: str
+            file_id_template?: str
+          }
+        - auth.type: google_drive_service_account | google_drive_authorized_user
+        """
+
+        gcfg = self.provider.get("google_drive") or {}
+        if not isinstance(gcfg, dict):
+            raise ValueError("google_drive config must be a mapping")
+
+        root_folder_id = str(gcfg.get("root_folder_id") or gcfg.get("folder_id") or "").strip()
+        root_folder_name = str(gcfg.get("root_folder_name") or "").strip()
+
+        file_id_template = gcfg.get("file_id_template")
+        file_name_template = gcfg.get("file_name_template")
+        subfolder_name_template = gcfg.get("subfolder_name_template")
+
+        repo_root = Path(__file__).resolve().parents[2]
+
+        # Lazy import keeps non-gdrive workflows unchanged.
+        from qf_downloader.google_drive_client import GoogleDriveClient
+
+        client = GoogleDriveClient.from_provider(provider=self.provider, repo_root=repo_root)
+
+        if not root_folder_id:
+            if not root_folder_name:
+                raise ValueError(
+                    "google_drive.root_folder_id (or folder_id) is required unless root_folder_name is provided"
+                )
+            resolved = await asyncio.to_thread(
+                client.find_folder_id_by_name, folder_name=root_folder_name
+            )
+            if not resolved:
+                raise FileNotFoundError(f"Drive folder '{root_folder_name}' not found")
+            root_folder_id = resolved
+
+        if isinstance(file_id_template, str) and file_id_template.strip():
+            file_id = file_id_template.format(**template_vars)
+            url = f"gdrive://{file_id}"
+            content = await asyncio.to_thread(client.download_file_bytes, file_id=file_id)
+            extract_csv = bool(gcfg.get("extract_csv", False))
+            if extract_csv:
+                content = _extract_first_csv_from_zip_bytes(content)
+            return url, content
+
+        if not isinstance(file_name_template, str) or not file_name_template.strip():
+            raise ValueError(
+                "google_drive.file_name_template is required when file_id_template is not provided"
+            )
+
+        target_folder_id = root_folder_id
+        if isinstance(subfolder_name_template, str) and subfolder_name_template.strip():
+            subfolder_name = subfolder_name_template.format(**template_vars)
+            resolved = await asyncio.to_thread(
+                client.find_child_folder_id,
+                parent_folder_id=root_folder_id,
+                folder_name=subfolder_name,
+            )
+            if not resolved:
+                raise FileNotFoundError(
+                    f"Drive subfolder '{subfolder_name}' not found under root folder id={root_folder_id}"
+                )
+            target_folder_id = resolved
+
+        filename = file_name_template.format(**template_vars)
+        file_id = await asyncio.to_thread(
+            client.find_file_id_by_name,
+            folder_id=target_folder_id,
+            filename=filename,
+        )
+        if not file_id:
+            raise FileNotFoundError(
+                f"Drive file '{filename}' not found in folder id={target_folder_id}"
+            )
+
+        url = f"gdrive://{file_id}"
+        content = await asyncio.to_thread(client.download_file_bytes, file_id=file_id)
+        extract_csv = bool(gcfg.get("extract_csv", False))
+        if extract_csv:
+            content = _extract_first_csv_from_zip_bytes(content)
+        return url, content
+
+    @staticmethod
     def _split_pair(pair: str) -> Tuple[str, str]:
         if pair.upper() == "ALL":
             return "", ""
@@ -285,3 +452,16 @@ class ProviderDownloader:
             resp.raise_for_status()
             content = await resp.read()
             return resp, content
+
+
+def _extract_first_csv_from_zip_bytes(zip_bytes: bytes) -> bytes:
+    import zipfile
+    from io import BytesIO
+
+    with zipfile.ZipFile(BytesIO(zip_bytes)) as zf:
+        csv_names = [n for n in zf.namelist() if n.lower().endswith(".csv")]
+        if not csv_names:
+            raise FileNotFoundError("No .csv file found inside zip")
+        # Use the first CSV; vendor zips are typically single-file.
+        with zf.open(csv_names[0]) as fp:
+            return fp.read()

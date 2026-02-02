@@ -108,3 +108,127 @@ def test_prepare_auth_basic(monkeypatch) -> None:
 
     assert auth is not None
     assert getattr(auth, "login", None) == "u"
+
+
+def test_download_single_day_google_drive_provider(tmp_path, monkeypatch) -> None:
+    provider = {
+        "name": "gdriveprov",
+        "save_path": "gdriveprov/{pair}/{year}/{month}/{day}",
+        "artifact_type": "ohlcv",
+        "supports_pairs": ["EURUSD"],
+        "source": "google_drive",
+        "google_drive": {
+            "root_folder_id": "FOLDER",
+            "file_id_template": "FILE_{pair}_{year}{month}{day}",
+        },
+        "auth": {
+            "type": "google_drive_service_account",
+            "service_account_file": "config/secrets/google_drive_service_account.json",
+        },
+    }
+
+    db = SimpleNamespace(
+        exists_checksum=AsyncMock(return_value=False),
+        add_download=AsyncMock(),
+    )
+    s3 = SimpleNamespace(upload_file=AsyncMock())
+
+    class _FakeDriveClient:
+        def __init__(self):
+            self.last_file_id: str | None = None
+
+        def download_file_bytes(self, *, file_id: str) -> bytes:
+            self.last_file_id = file_id
+            return b"drive-payload"
+
+    fake_client = _FakeDriveClient()
+
+    from qf_downloader import google_drive_client as gdc
+
+    monkeypatch.setattr(
+        gdc.GoogleDriveClient,
+        "from_provider",
+        classmethod(lambda cls, provider, repo_root: fake_client),
+    )
+
+    dl = ProviderDownloader(provider=provider, s3=s3, db=db, base_data_dir=str(tmp_path))
+    dl.indexer = SimpleNamespace(index_file=AsyncMock())
+
+    day = datetime(2024, 1, 2, tzinfo=UTC)
+
+    async def scenario() -> dict:
+        return await dl._download_single_day(pair="EURUSD", day=day)
+
+    result = asyncio.run(scenario())
+    assert result["status"] == "uploaded"
+    assert fake_client.last_file_id == "FILE_EURUSD_20240102"
+
+    # Ensure raw upload happened with the downloaded bytes.
+    raw_call = next(
+        call
+        for call in s3.upload_file.await_args_list
+        if call.kwargs["key"].endswith("/EURUSD_20240102.bin")
+    )
+    assert raw_call.kwargs["content"] == b"drive-payload"
+
+
+def test_download_single_day_google_drive_zip_extracts_csv(tmp_path, monkeypatch) -> None:
+    import zipfile
+    from io import BytesIO
+
+    buf = BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("DAT_ASCII_EURUSD_M1_2007.csv", "a,b\n1,2\n")
+    zip_bytes = buf.getvalue()
+
+    provider = {
+        "name": "gdrivezip",
+        "save_path": "gdrivezip/{pair}/{year}",
+        "artifact_type": "ohlcv",
+        "supports_pairs": ["EURUSD"],
+        "source": "google_drive",
+        "google_drive": {
+            "root_folder_id": "FOLDER",
+            "file_id_template": "FILE_{pair}_{year}",
+            "extract_csv": True,
+            "output_filename_template": "DAT_ASCII_{pair}_M1_{year}.csv",
+        },
+        "auth": {
+            "type": "google_drive_service_account",
+            "service_account_file": "config/secrets/google_drive_service_account.json",
+        },
+    }
+
+    db = SimpleNamespace(
+        exists_checksum=AsyncMock(return_value=False),
+        add_download=AsyncMock(),
+    )
+    s3 = SimpleNamespace(upload_file=AsyncMock())
+
+    class _FakeDriveClient:
+        def download_file_bytes(self, *, file_id: str) -> bytes:
+            return zip_bytes
+
+    from qf_downloader import google_drive_client as gdc
+
+    monkeypatch.setattr(
+        gdc.GoogleDriveClient,
+        "from_provider",
+        classmethod(lambda cls, provider, repo_root: _FakeDriveClient()),
+    )
+
+    dl = ProviderDownloader(provider=provider, s3=s3, db=db, base_data_dir=str(tmp_path))
+    dl.indexer = SimpleNamespace(index_file=AsyncMock())
+
+    day = datetime(2007, 1, 1, tzinfo=UTC)
+
+    async def scenario() -> dict:
+        return await dl._download_single_day(pair="EURUSD", day=day)
+
+    result = asyncio.run(scenario())
+    assert result["status"] == "uploaded"
+
+    raw_call = next(
+        call for call in s3.upload_file.await_args_list if call.kwargs["key"].endswith(".csv")
+    )
+    assert raw_call.kwargs["content"].startswith(b"a,b\n")

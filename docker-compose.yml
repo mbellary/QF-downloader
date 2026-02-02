@@ -1,47 +1,15 @@
 services:
-  localstack:
-    image: localstack/localstack:latest
-    container_name: localstack-dev
-    ports:
-      - "4566:4566"
-      - "4510-4559:4510-4559"
-    environment:
-      - SERVICES=s3,sqs,dynamodb,cloudwatch
-      - DEBUG=1
-      - DATA_DIR=/tmp/localstack/data
-      - PERSISTENCE=1
-      - HOSTNAME_EXTERNAL=localstack
-    volumes:
-      - "./localstack_data:/var/lib/localstack"
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
-      interval: 5s
-      timeout: 2s
-      retries: 20
-
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: prometheus-dev
-    ports:
-      - "9090:9090"
-    volumes:
-      - "./prometheus.yml:/etc/prometheus/prometheus.yml"
-
   qf-app:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: qf-app-dev
+    container_name: qf-downloader-dev
     environment:
       APP_ENV: ${APP_ENV:-localstack}
-      LOCALSTACK_URL: http://localstack:4566
+      LOCALSTACK_URL: http://host.docker.internal:4566
     env_file:
       - ./src/qf_downloader/.env.dev
     volumes:
       - ./:/qf-downloader
-    depends_on:
-      localstack:
-        condition: service_healthy
     command: ["sleep", "infinity"]
 
