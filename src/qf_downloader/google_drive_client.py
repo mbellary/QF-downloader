@@ -152,17 +152,44 @@ def _resolve_auth_config(*, auth_cfg: dict[str, Any], repo_root: Path) -> Google
         scopes = (DRIVE_READONLY_SCOPE,)
 
     # Prefer explicit provider config; fall back to environment; then default path.
-    if auth_type == "google_drive_service_account":
-        p = auth_cfg.get("service_account_file")
-        if not p:
-            import os
+    # if auth_type == "google_drive_service_account":
+    #     p = auth_cfg.get("service_account_file")
+    #     if not p:
+    #         import os
 
-            p = os.getenv("GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE")
-        if not p:
-            p = str(repo_root / "config" / "secrets" / "google_drive_service_account.json")
+    #         p = os.getenv("GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE")
+    #     if not p:
+    #         p = str(repo_root / "config" / "secrets" / "google_drive_service_account.json")
+    #     return GoogleDriveAuthConfig(
+    #         auth_type=auth_type,
+    #         service_account_file=Path(p),
+    #         scopes=scopes,
+    #     )
+
+    if auth_type == "google_drive_service_account":
+        # 1️⃣ Highest priority: env var
+        env_path = os.getenv("GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE")
+        if env_path:
+            return GoogleDriveAuthConfig(
+                auth_type=auth_type,
+                service_account_file=Path(env_path),
+                scopes=scopes,
+            )
+
+        # 2️⃣ Optional explicit config (ONLY if non-empty)
+        cfg_path = auth_cfg.get("service_account_file")
+        if isinstance(cfg_path, str) and cfg_path.strip():
+            return GoogleDriveAuthConfig(
+                auth_type=auth_type,
+                service_account_file=Path(cfg_path),
+                scopes=scopes,
+            )
+
+        # 3️⃣ Legacy fallback (local dev only)
+        legacy = repo_root / "config" / "secrets" / "google_drive_service_account.json"
         return GoogleDriveAuthConfig(
             auth_type=auth_type,
-            service_account_file=Path(p),
+            service_account_file=legacy,
             scopes=scopes,
         )
 
