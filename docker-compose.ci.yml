@@ -13,7 +13,7 @@ services:
       interval: 5s
       retries: 20
 
-  downloader:
+  qf-app:
     depends_on:
       localstack:
         condition: service_healthy
