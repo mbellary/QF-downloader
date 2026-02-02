@@ -258,6 +258,45 @@
       "format": "json"
     },
     {
+      "name": "google_drive_fx_1m",
+      "enabled": false,
+      "artifact_type": "ohlcv",
+      "supports_pairs": [
+        "EURUSD",
+        
+        "GBPUSD",
+        "USDJPY",
+        "AUDUSD",
+        "USDCAD",
+        "USDCHF",
+        "NZDUSD"
+
+      ],
+      "source": "google_drive",
+      "google_drive": {
+        "root_folder_name": "FX-1-Minute-Data",
+        "root_folder_id": "1IG_5SM3SLsxVeaDJlmL2qskex5EsTwjG",
+        "granularity": "year",
+        "subfolder_name_template": "{pair_lower}",
+        "file_name_template": "DAT_ASCII_{pair}_M1_{year}.zip",
+        "extract_csv": true,
+        "output_filename_template": "DAT_ASCII_{pair}_M1_{year}.csv"
+      },
+      "auth": {
+        "type": "google_drive_service_account",
+        "service_account_file": "config/secrets/google_drive_service_account.json",
+        "scopes": [
+          "https://www.googleapis.com/auth/drive.readonly"
+        ]
+      },
+      "save_path": "data/raw/fx/ohlcv/google_drive_fx_1m/{pair}/{year}",
+      "retry": {
+        "max_attempts": 5,
+        "backoff": "exponential"
+      },
+      "format": "binary"
+    },
+    {
       "name": "econ_tradingeconomics_eu_us",
       "enabled": false,
       "artifact_type": "macro",

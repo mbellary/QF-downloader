@@ -1,40 +1,482 @@
 {
   "schema_id": "quant-spec.q0_4.validation_metrics",
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "task_id": "Q0.4",
-  "effective_date": "2026-01-02",
+  "effective_date": "2026-01-30",
+  "authority": {
+    "machine_readable_is_authoritative": true,
+    "markdown_is_explanatory_only": true
+  },
   "metric_requirements": {
-    "each_metric_must_define": ["definition", "measurement_window", "optimization_direction", "failure_modes"],
+    "each_metric_must_define": [
+      "id",
+      "name",
+      "group",
+      "optimization_direction",
+      "loss_eligibility",
+      "definition",
+      "required_inputs",
+      "conditioning_set",
+      "aggregation_set",
+      "visual_diagnostics_set",
+      "failure_modes"
+    ],
+    "loss_eligibility_values": ["loss_eligible", "report_only"],
+    "returns_metrics_must_be_report_only": true,
     "regime_aware_required": true
   },
   "metric_hierarchy": {
-    "priority_order": ["noise", "volatility", "regime", "conditional_alpha", "returns"],
+    "priority_order": ["data_contract_diagnostics", "noise", "volatility", "regime", "conditional_alpha", "returns"],
     "note": "This ordering must be compatible with docs/quant/system_kpis.yaml gating."
+  },
+  "defaults": {
+    "rolling_windows": ["20B", "60B", "252B"],
+    "bootstrap": {"enabled": false, "method": "block_bootstrap", "resamples": 1000, "block": "auto"},
+    "confidence_interval_alpha": 0.05
+  },
+  "conditioning_sets": {
+    "none": {"requires": []},
+    "regime_breakdown": {"requires": ["regime_label_series"]},
+    "gated_eps_sigma_regime": {"requires": ["gate_mask_eps", "gate_mask_sigma", "regime_label_series"]},
+    "probabilistic": {"requires": ["probabilities", "outcomes"]},
+    "distributional": {"requires": ["predictive_distribution_or_quantiles", "realized_value"]}
+  },
+  "aggregation_sets": {
+    "none": {"rolling": false, "per_regime": false},
+    "rolling": {"rolling": true, "windows": "defaults.rolling_windows", "per_regime": false},
+    "rolling_and_per_regime": {
+      "rolling": true,
+      "windows": "defaults.rolling_windows",
+      "per_regime": true,
+      "across_regime_summary": ["worst_regime", "weighted_mean", "variance_across_regimes"]
+    }
+  },
+  "visual_diagnostics_sets": {
+    "schema_contract": {
+      "plots": [
+        {"plot_id": "schema_validation_summary", "acceptance_checks": ["all_required_artifacts_validate", "no_partial_passes"]}
+      ]
+    },
+    "rolling_metric": {
+      "plots": [
+        {"plot_id": "rolling_timeseries", "acceptance_checks": ["rolling_window_reported"]}
+      ]
+    },
+    "by_regime": {
+      "plots": [
+        {"plot_id": "metric_by_regime", "acceptance_checks": ["per_regime_breakdown_present"]}
+      ]
+    },
+    "calibration": {
+      "plots": [
+        {"plot_id": "reliability_diagram", "acceptance_checks": ["calibration_curve_present"]}
+      ]
+    },
+    "pit": {
+      "plots": [
+        {"plot_id": "pit_histogram", "acceptance_checks": ["pit_histogram_present", "uniformity_test_reported"]}
+      ]
+    },
+    "var_backtest": {
+      "plots": [
+        {"plot_id": "var_exceedances", "acceptance_checks": ["exceedance_rate_reported", "test_p_values_reported"]}
+      ]
+    },
+    "llm_ablation": {
+      "plots": [
+        {"plot_id": "llm_ablation_decision_delta", "acceptance_checks": ["llm_does_not_dominate_directional_decisions"]}
+      ]
+    }
   },
   "metrics": [
     {
-      "name": "QLIKE",
-      "category": "volatility",
+      "id": "QLIKE",
+      "name": "QLIKE (mandatory for σ)",
+      "group": "distributional_forecast",
       "optimization_direction": "minimize",
-      "measurement_window": "rolling",
       "definition": "QLIKE(\u03c3_hat^2, r^2) = log(\u03c3_hat^2) + (r^2 / \u03c3_hat^2)",
+      "loss_eligibility": "loss_eligible",
+      "required_inputs": ["sigma_hat", "returns"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "by_regime",
       "failure_modes": ["variance_collapse", "numerical_instability_if_sigma_hat_near_zero"]
     },
     {
-      "name": "NER",
-      "category": "noise",
+      "id": "NER",
+      "name": "Signal/Noise Governance (Noise Explainability Ratio)",
+      "group": "noise",
       "optimization_direction": "maximize",
-      "measurement_window": "rolling",
       "definition": "Noise Explainability Ratio as defined in system KPIs.",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["epsilon_hat", "sigma_hat", "returns"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "by_regime",
       "failure_modes": ["metric_gaming_via_scaling", "misaligned_variance_decomposition"]
     },
     {
-      "name": "Sharpe",
-      "category": "returns",
+      "id": "SHARPE",
+      "name": "Sharpe (reported only)",
+      "group": "returns",
       "optimization_direction": "maximize",
-      "measurement_window": "rolling",
       "definition": "mean(return)/std(return) over the window",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["return_series"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "by_regime",
       "failure_modes": ["unstable_under_regime_shifts", "dominated_by_tail_events"]
+    },
+    {
+      "id": "SCR",
+      "name": "Schema Compliance Rate (pass/fail)",
+      "group": "data_contract_diagnostics",
+      "optimization_direction": "maximize",
+      "definition": "Binary pass/fail for schema validation of required artifacts; no warnings-only acceptance.",
+      "loss_eligibility": "report_only",
+      "allowed_to_gate_infra_phases": true,
+      "required_inputs": ["artifact_schema_validation_results"],
+      "conditioning_set": "none",
+      "aggregation_set": "none",
+      "visual_diagnostics_set": "schema_contract",
+      "failure_modes": ["silent_schema_drift", "treating_warnings_as_pass"]
+    },
+    {
+      "id": "METADATA_COMPLETENESS",
+      "name": "Metadata Completeness (feature + model registries)",
+      "group": "data_contract_diagnostics",
+      "optimization_direction": "maximize",
+      "definition": "Fraction of registered features/models with required metadata fields present.",
+      "loss_eligibility": "report_only",
+      "allowed_to_gate_infra_phases": true,
+      "required_inputs": ["feature_registry", "model_registry"],
+      "conditioning_set": "none",
+      "aggregation_set": "none",
+      "visual_diagnostics_set": "schema_contract",
+      "failure_modes": ["partial_registry_acceptance", "missing_lineage_pointers"]
+    },
+    {
+      "id": "COVERAGE_MISSINGNESS",
+      "name": "Coverage / Missingness Summary",
+      "group": "data_contract_diagnostics",
+      "optimization_direction": "minimize",
+      "definition": "Missingness/coverage rates reported by instrument, session, provider, and day-of-week.",
+      "loss_eligibility": "report_only",
+      "allowed_to_gate_infra_phases": true,
+      "required_inputs": ["observations", "session_calendar", "provider_metadata"],
+      "conditioning_set": "none",
+      "aggregation_set": "none",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["missingness_hidden_by_imputation", "provider_mix_shift_unnoticed"]
+    },
+    {
+      "id": "TIMEBASE_INTEGRITY",
+      "name": "Timebase Integrity Summary",
+      "group": "data_contract_diagnostics",
+      "optimization_direction": "minimize",
+      "definition": "Duplicates, non-monotonic timestamps, and gap anomalies after normalization.",
+      "loss_eligibility": "report_only",
+      "allowed_to_gate_infra_phases": true,
+      "required_inputs": ["timestamps", "session_calendar"],
+      "conditioning_set": "none",
+      "aggregation_set": "none",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["timezone_normalization_errors", "implicit_resampling_hides_gaps"]
+    },
+    {
+      "id": "LLM_ABLATION",
+      "name": "LLM Ablation & Dominance Diagnostics",
+      "group": "data_contract_diagnostics",
+      "optimization_direction": "minimize",
+      "definition": "Compare decisions and gated KPI deltas with vs without LLM modifiers; isolate LLM contribution.",
+      "loss_eligibility": "report_only",
+      "allowed_to_gate_infra_phases": true,
+      "required_inputs": ["decisions_with_llm", "decisions_without_llm", "kpi_report_with_llm", "kpi_report_without_llm"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "llm_ablation",
+      "failure_modes": ["llm_masks_model_failures", "llm_leaks_post_event_outcomes"]
+    },
+
+    {
+      "id": "SORTINO",
+      "name": "Sortino (reported only)",
+      "group": "returns",
+      "optimization_direction": "maximize",
+      "definition": "mean(return)/std(negative_return) over window",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["return_series"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["downside_definition_inconsistent", "small_sample_instability"]
+    },
+    {
+      "id": "MAX_DRAWDOWN",
+      "name": "Max Drawdown + duration",
+      "group": "returns",
+      "optimization_direction": "minimize",
+      "definition": "Max peak-to-trough drawdown and associated duration",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["equity_curve"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["path_dependence_ignored", "inconsistent_cost_model"]
+    },
+    {
+      "id": "CALMAR",
+      "name": "Calmar (reported only)",
+      "group": "returns",
+      "optimization_direction": "maximize",
+      "definition": "annualized_return/|max_drawdown|",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["return_series", "equity_curve"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "by_regime",
+      "failure_modes": ["annualization_mismatch", "drawdown_definition_inconsistent"]
+    },
+    {
+      "id": "TURNOVER_CAPACITY",
+      "name": "Turnover + capacity proxies",
+      "group": "returns",
+      "optimization_direction": "minimize",
+      "definition": "Turnover and capacity proxies (spread/impact/cost sensitivity) with explicit units.",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["positions", "cost_model_inputs"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["hidden_churn_via_netting", "impact_proxy_not_declared"]
+    },
+    {
+      "id": "COST_ADJUSTED_METRICS",
+      "name": "Cost-adjusted metrics",
+      "group": "returns",
+      "optimization_direction": "maximize",
+      "definition": "Return/portfolio metrics recomputed after applying spread/slippage/financing assumptions.",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["return_series", "cost_model"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["cost_model_inconsistent_with_backtest_rules", "double_counting_costs"]
+    },
+
+    {
+      "id": "PBO",
+      "name": "Probability of Backtest Overfitting",
+      "group": "backtest_robustness",
+      "optimization_direction": "minimize",
+      "definition": "PBO via CSCV-style resampling; resampling plan must be declared.",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["candidate_strategies", "return_series"],
+      "conditioning_set": "none",
+      "aggregation_set": "none",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["insufficient_resamples", "selection_bias_in_candidates"]
+    },
+    {
+      "id": "DSR",
+      "name": "Deflated Sharpe Ratio",
+      "group": "backtest_robustness",
+      "optimization_direction": "maximize",
+      "definition": "Sharpe adjusted for multiple testing and non-normality assumptions.",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["return_series", "num_trials"],
+      "conditioning_set": "none",
+      "aggregation_set": "none",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["incorrect_trial_count", "distributional_misspecification"]
+    },
+    {
+      "id": "BOOTSTRAP_SIGNIFICANCE",
+      "name": "White Reality Check / bootstrap significance (optional)",
+      "group": "backtest_robustness",
+      "optimization_direction": "maximize",
+      "definition": "Optional bootstrap significance test; if used, method and null must be declared.",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["return_series", "null_model"],
+      "conditioning_set": "none",
+      "aggregation_set": "none",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["invalid_null_model", "multiple_testing_ignored"]
+    },
+
+    {
+      "id": "SNR",
+      "name": "Signal-to-Noise Ratio",
+      "group": "signal_quality",
+      "optimization_direction": "maximize",
+      "definition": "SNR under declared decomposition; report per-regime and worst-regime.",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["signal_component", "noise_component"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "by_regime",
+      "failure_modes": ["arbitrary_decomposition", "variance_scaling_gaming"]
+    },
+    {
+      "id": "IC_RANK_IC",
+      "name": "IC / Rank-IC (where applicable)",
+      "group": "signal_quality",
+      "optimization_direction": "maximize",
+      "definition": "Correlation between prediction and realized outcome with declared alignment (rank correlation if configured).",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["predictions", "realized_outcomes"],
+      "conditioning_set": "gated_eps_sigma_regime",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["lookahead_leakage", "misaligned_horizons"]
+    },
+    {
+      "id": "HIT_RATIO_COND",
+      "name": "Hit ratio (conditional on ε/σ/regime gates)",
+      "group": "signal_quality",
+      "optimization_direction": "maximize",
+      "definition": "Hit ratio computed only within allowed gates; unconditional comparison must be reported.",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["predicted_direction", "realized_direction", "gate_masks"],
+      "conditioning_set": "gated_eps_sigma_regime",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["gate_mask_leaks_future", "trivial_gate_changes_denominator"]
+    },
+    {
+      "id": "ALPHA_DECAY_HALF_LIFE",
+      "name": "Alpha decay half-life (IS vs OOS)",
+      "group": "signal_quality",
+      "optimization_direction": "maximize",
+      "definition": "Time scale for signal decay; must be reported in-sample and out-of-sample.",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["predictions", "realized_outcomes"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "none",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["in_sample_only_reporting", "horizon_mismatch"]
+    },
+
+    {
+      "id": "BRIER",
+      "name": "Brier score",
+      "group": "calibration",
+      "optimization_direction": "minimize",
+      "definition": "Mean squared error between predicted probabilities and outcomes.",
+      "loss_eligibility": "loss_eligible",
+      "required_inputs": ["probabilities", "outcomes"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "calibration",
+      "failure_modes": ["class_imbalance_unaddressed", "probabilities_not_proper"]
+    },
+    {
+      "id": "ECE",
+      "name": "Expected Calibration Error",
+      "group": "calibration",
+      "optimization_direction": "minimize",
+      "definition": "ECE computed from reliability bins; binning strategy must be declared.",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["probabilities", "outcomes"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "calibration",
+      "failure_modes": ["ece_sensitive_to_bins", "tail_miscalibration_hidden"]
+    },
+    {
+      "id": "LOG_LOSS",
+      "name": "Log loss / log score",
+      "group": "calibration",
+      "optimization_direction": "minimize",
+      "definition": "Negative log-likelihood of realized outcomes under predicted probabilities.",
+      "loss_eligibility": "loss_eligible",
+      "required_inputs": ["probabilities", "outcomes"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["overconfident_probabilities", "label_noise_unmodeled"]
+    },
+
+    {
+      "id": "LOG_MSE_LOG_SIGMA2",
+      "name": "log-MSE on log(σ^2)",
+      "group": "distributional_forecast",
+      "optimization_direction": "minimize",
+      "definition": "MSE(log(σ_hat^2) - log(σ_realized^2)).",
+      "loss_eligibility": "loss_eligible",
+      "required_inputs": ["sigma_hat", "sigma_realized"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["sigma_realized_definition_mismatch", "log_of_zero_handling"]
+    },
+    {
+      "id": "CRPS_PINBALL",
+      "name": "CRPS / pinball loss (quantiles)",
+      "group": "distributional_forecast",
+      "optimization_direction": "minimize",
+      "definition": "CRPS for distribution forecasts; pinball loss for quantile forecasts; quantile set must be declared.",
+      "loss_eligibility": "loss_eligible",
+      "required_inputs": ["predictive_distribution_or_quantiles", "realized_value"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["quantile_crossing", "cdf_support_mismatch"]
+    },
+    {
+      "id": "PIT",
+      "name": "PIT histogram requirements",
+      "group": "distributional_forecast",
+      "optimization_direction": "minimize",
+      "definition": "PIT histogram and uniformity diagnostics for density forecasts.",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["predictive_distribution_or_quantiles", "realized_value"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "none",
+      "visual_diagnostics_set": "pit",
+      "failure_modes": ["misspecified_density", "tail_miscalibration_hidden"]
+    },
+
+    {
+      "id": "VAR_ES_BACKTESTS",
+      "name": "VaR / ES backtests (Kupiec + Christoffersen)",
+      "group": "tail_risk",
+      "optimization_direction": "maximize",
+      "definition": "Backtests for VaR/ES including Kupiec and Christoffersen; report exceedances and p-values per regime.",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["var_forecast", "es_forecast", "returns"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "var_backtest",
+      "failure_modes": ["incorrect_alignment", "small_sample_instability"]
+    },
+    {
+      "id": "EVT_DIAGNOSTICS",
+      "name": "Tail index / EVT fit diagnostics (where used)",
+      "group": "tail_risk",
+      "optimization_direction": "minimize",
+      "definition": "When EVT is used: stability plots, threshold sensitivity, and GOF diagnostics must be reported.",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["tail_samples"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "none",
+      "visual_diagnostics_set": "rolling_metric",
+      "failure_modes": ["insufficient_tail_samples", "unstable_threshold_choice"]
+    },
+
+    {
+      "id": "REGIME_METRIC_STABILITY",
+      "name": "Regime-conditioned stability (variance across regimes)",
+      "group": "regime_aware_evaluation",
+      "optimization_direction": "minimize",
+      "definition": "Variance of core metric values across regimes; high variance indicates regime fragility.",
+      "loss_eligibility": "report_only",
+      "required_inputs": ["metric_values_by_regime"],
+      "conditioning_set": "regime_breakdown",
+      "aggregation_set": "rolling_and_per_regime",
+      "visual_diagnostics_set": "by_regime",
+      "failure_modes": ["regime_labels_leak_outcomes", "insufficient_regime_samples"]
     }
   ]
 }
