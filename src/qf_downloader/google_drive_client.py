@@ -167,6 +167,8 @@ def _resolve_auth_config(*, auth_cfg: dict[str, Any], repo_root: Path) -> Google
     #     )
 
     if auth_type == "google_drive_service_account":
+        import os
+
         # 1️⃣ Highest priority: env var
         env_path = os.getenv("GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE")
         if env_path:
