@@ -23,6 +23,7 @@ data/dev_downloads.db
 data/raw/*
 data/customer/*
 
+
 # Local-only secrets (do not commit)
 config/secrets/*.json
 !config/secrets/*.example.json
