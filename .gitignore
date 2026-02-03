@@ -19,7 +19,7 @@ pipelines/ingestion/fx/metadata.json
 # Runtime-generated Phase 0.2 roll-up manifest
 pipelines/ingestion/macro_news/metadata.json
 
-data/*
+data/dev_downloads.db
 data/raw/*
 data/customer/*
 
