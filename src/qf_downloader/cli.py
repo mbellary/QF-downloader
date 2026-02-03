@@ -79,7 +79,7 @@ async def _run_loop(providers_cfg):
 
 
 @app.command()
-def run(providers_file: str = None):
+def run(providers_file: str | None = None):
     """Run incremental polling for all providers."""
     pf = providers_file or PROVIDERS_FILE
     providers_cfg = load_providers_config(pf)

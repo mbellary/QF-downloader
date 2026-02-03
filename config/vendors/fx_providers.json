@@ -24,7 +24,7 @@
   "providers": [
     {
       "name": "dukascopy",
-      "enabled": true,
+      "enabled": false,
       "artifact_type": "tick",
       "supports_pairs": [
         "EURUSD",
@@ -85,7 +85,7 @@
     },
     {
       "name": "econdb",
-      "enabled": true,
+      "enabled": false,
       "artifact_type": "macro",
       "supports_pairs": [
         "ALL"
@@ -102,7 +102,7 @@
     },
     {
       "name": "fmp_stable_economic_calendar",
-      "enabled": true,
+      "enabled": false,
       "artifact_type": "macro",
       "supports_pairs": [
         "ALL"
@@ -259,18 +259,11 @@
     },
     {
       "name": "google_drive_fx_1m",
-      "enabled": false,
+      "enabled": true,
       "artifact_type": "ohlcv",
       "supports_pairs": [
         "EURUSD",
-        
-        "GBPUSD",
-        "USDJPY",
-        "AUDUSD",
-        "USDCAD",
-        "USDCHF",
-        "NZDUSD"
-
+        "GBPUSD"
       ],
       "source": "google_drive",
       "google_drive": {
@@ -294,7 +287,8 @@
         "max_attempts": 5,
         "backoff": "exponential"
       },
-      "format": "binary"
+      "format": "binary",
+      "poll_interval": 300
     },
     {
       "name": "econ_tradingeconomics_eu_us",

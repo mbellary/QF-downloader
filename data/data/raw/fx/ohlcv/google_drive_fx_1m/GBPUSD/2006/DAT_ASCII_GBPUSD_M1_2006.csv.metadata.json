@@ -1,0 +1,32 @@
+{
+  "artifact_type": "ohlcv",
+  "date": "20060101",
+  "hashes": {
+    "sha256": "6887985a46556fb79d9ab3c936095fe166da260c5dbb25106488712c2848c8dd"
+  },
+  "ingested_at_utc": "2026-02-03T08:42:09.462048+00:00",
+  "pair": "GBPUSD",
+  "provider": "google_drive_fx_1m",
+  "schema_id": "infra.phase0.raw_market_ingestion",
+  "schema_version": "1.0.0",
+  "source": {
+    "http_method": "GET",
+    "request_headers_redacted": {
+      "Accept": "*/*",
+      "User-Agent": "Mozilla/5.0"
+    },
+    "url": "gdrive://17txxQNgaDeaUzPZHAfTnnO_zY6MZ-zNB"
+  },
+  "storage": {
+    "local_path": "data/data/raw/fx/ohlcv/google_drive_fx_1m/GBPUSD/2006/DAT_ASCII_GBPUSD_M1_2006.csv",
+    "s3_bucket": "fx-ml-data",
+    "s3_key": "data/raw/fx/ohlcv/google_drive_fx_1m/GBPUSD/2006/DAT_ASCII_GBPUSD_M1_2006.csv"
+  },
+  "time_contract": {
+    "quant_effective_date": "2026-01-02",
+    "quant_spec_path": "docs/quant/return_calculation.yaml",
+    "quant_spec_sha256": "27bffd133cf7dda3225527e93a9b6258ec4ddb90a9c79cd880adfa362f5cfc20",
+    "timestamp_unit": "ISO-8601",
+    "timezone": "UTC"
+  }
+}

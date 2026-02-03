@@ -46,7 +46,7 @@ dev = [
 
 [project.scripts]
 worker_incremental = "qf_downloader.cli:run" # nightly trainig
-worker_historical = "qf_downloader.cli:app" #historical training
+worker = "qf_downloader.cli:app" #historical training
 
 [build-system]
 requires = ["hatchling"]

@@ -11,5 +11,5 @@ services:
       - ./src/qf_downloader/.env.dev
     volumes:
       - ./:/qf-downloader
-    command: ["sleep", "infinity"]
+    command: ["worker", "run"] # streaming mode
 
